@@ -15,13 +15,13 @@ exchangeRouter.post(
     asyncHandler(validate(exchangeRequest.createExchangeRequestValidate)),
     asyncHandler(exchangeController.createPost)
 )
-// [GET] : /request_exchange/me
+// [GET] : /request_exchange/me  => Lấy ra danh sách mình yêu cầu với ng khác
 exchangeRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(exchangeController.readListMe))
 
-// [GET] : /request_exchange?
+// [GET] : /request_exchange? => lấy ra danh sách người khác yêu cầu
 exchangeRouter.get('/', asyncHandler(requireAuthentication), asyncHandler(exchangeController.readList))
 
-// [PATCH] : /request_exchange/me
+// [PATCH] : /request_exchange/me => phê duyệt người đc trao đổi
 exchangeRouter.patch('/', asyncHandler(requireAuthentication), asyncHandler(exchangeController.success))
 
 // [DELETE] : /request_gift/:id
@@ -31,4 +31,5 @@ exchangeRouter.delete(
     asyncHandler(requireAuthentication),
     asyncHandler(exchangeController.deleted)
 )
+
 export default exchangeRouter

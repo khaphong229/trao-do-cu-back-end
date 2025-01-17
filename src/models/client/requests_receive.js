@@ -36,6 +36,11 @@ const RequestsReceive = createModel(
             type: String,
             required: false,
         },
+        deletedAt: Date,
+        isDeleted: {
+            type: Boolean,
+            default: false,
+        },
     },
     {}
 )

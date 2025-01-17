@@ -1,4 +1,5 @@
 import Post from '@/models/client/post'
+import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
 
 export async function create(requestBody, req) {
@@ -7,6 +8,42 @@ export async function create(requestBody, req) {
     const data = new Post(requestBody)
     await data.save()
     return data
+}
+
+export async function createRePostSer(requestBody, req) {
+    const {postId} = requestBody
+    const userId = req.currentUser._id
+    // Kiểm tra bài gốc
+    const originalPost = await Post.findOne({_id: postId, user_id: userId})
+    if (!originalPost) {
+        abort(404, 'Bài đăng không tồn tại hoặc không thuộc về bạn.')
+    }
+
+    // Đánh dấu bài gốc là `isDeleted: true`
+    originalPost.status = 'inactive'
+    await originalPost.save()
+
+    const repostedPost = new Post({
+        user_id: userId,
+        type: originalPost.type, // Loại bài giữ nguyên
+        title: originalPost.title,
+        description: originalPost.description,
+        contact_social_media: originalPost.contact_social_media,
+        image_url: originalPost.image_url,
+        contact_phone: originalPost.contact_phone,
+        contact_address: originalPost.contact_address,
+        status: 'active', // Trạng thái mặc định cho bài viết mới
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        specificLocation: originalPost.specificLocation,
+        city: originalPost.city,
+        category_id: originalPost.category_id,
+    })
+
+    // Lưu bài đăng mới
+    await repostedPost.save()
+
+    return repostedPost
 }
 
 export const filter = async (qs, limit, current) => {

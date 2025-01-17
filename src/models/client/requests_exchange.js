@@ -36,6 +36,11 @@ const RequestsExchange = createModel('RequestsExchange', 'requests_exchange', {
     contact_address: {
         type: String,
     },
+    deletedAt: Date,
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
 })
 
 export default RequestsExchange

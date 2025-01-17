@@ -52,6 +52,7 @@ export const filter = async (qs, limit, current, req) => {
     let {filter} = aqp(qs)
     delete filter.current
     delete filter.pageSize
+    filter.isDeleted = false
     let {q} = filter
     delete filter.q
     if (q) {
@@ -59,6 +60,7 @@ export const filter = async (qs, limit, current, req) => {
         filter = {
             ...(q && {$or: [{contact_phone: q}, {contact_address: q}, {contact_social_media: q}]}),
         }
+        filter.isDeleted = false
     }
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
@@ -79,21 +81,29 @@ export const filter = async (qs, limit, current, req) => {
         .populate('user_req_id')
     // console.log('receiveRequests : ', receiveRequests)
 
-    const total = await RequestsReceive.countDocuments(filter)
+    // Lấy danh sách post_id từ bài viết
+    const postIds = userPosts.map((post) => post._id)
+
+    // Đảm bảo `filter` chỉ chứa bản ghi của người dùng hiện tại
+    const adjustedFilter = {
+        ...filter,
+        post_id: {$in: postIds}, // Chỉ lấy các bản ghi liên quan đến post của người dùng
+    }
+
+    // Đếm các tài liệu liên quan trong RequestsReceive
+    const total = await RequestsReceive.countDocuments(adjustedFilter)
     return {total, current, limit, receiveRequests}
 }
 
 export const filterMe = async (qs, limit, current, req) => {
     const userId = req.currentUser._id
 
-    // Basic query parameter handling
     let {filter} = aqp(qs)
     delete filter.current
     delete filter.pageSize
     let {q} = filter
     delete filter.q
 
-    // Handle search query
     if (q) {
         q = q ? {$regex: q, $options: 'i'} : null
         filter = {
@@ -101,22 +111,20 @@ export const filterMe = async (qs, limit, current, req) => {
         }
     }
 
-    // Handle sorting and pagination
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
 
-    // Find requests where the user is the requester
     const requests = await RequestsReceive.find({
-        user_req_id: userId, // User is the requester
+        user_req_id: userId,
         ...filter,
     })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .populate('post_id') // Populate post details
-        .populate('user_req_id') // Populate post owner details
+        .populate({path: 'post_id', populate: {path: 'user_id'}})
+        .populate('user_req_id')
 
     const total = await RequestsReceive.countDocuments({
         user_req_id: userId,

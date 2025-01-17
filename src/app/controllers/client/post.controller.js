@@ -5,6 +5,11 @@ export async function createPost(req, res) {
     res.status(201).jsonify('Tạo mới bài đăng thành công.')
 }
 
+export async function createRePost(req, res) {
+    await postService.createRePostSer(req.body, req)
+    res.status(201).jsonify('Đăng lại bài thành công.')
+}
+
 // [GET] : /post?
 export const readRoot = async (req, res) => {
     const limit = parseInt(req.query.pageSize)
