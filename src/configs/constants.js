@@ -26,10 +26,7 @@ export const NODE_ENV = Object.values(APP_ENV).includes(process.env.NODE_ENV)
 
 // Loads `.env` file contents into process.env
 dotenv.config({
-    path: [
-        path.join(APP_DIR, `.env.${NODE_ENV}`),
-        path.join(APP_DIR, '.env')
-    ],
+    path: [path.join(APP_DIR, `.env.${NODE_ENV}`), path.join(APP_DIR, '.env')],
 })
 
 // environment
@@ -157,5 +154,6 @@ export const JOI_DEFAULT_OPTIONS = {
 }
 
 export const VALIDATE_PHONE_REGEX = /^(0[235789])[0-9]{8}$/
-export const VALIDATE_PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])/
+// export const VALIDATE_PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])/
+export const VALIDATE_PASSWORD_REGEX = /^.{6,}$/
 export const VALIDATE_FULL_NAME_REGEX = /^[a-zA-ZÀ-ỹ ]+$/
