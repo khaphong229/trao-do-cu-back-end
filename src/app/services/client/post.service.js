@@ -13,8 +13,10 @@ export async function create(requestBody, req) {
 export async function createRePostSer(requestBody, req) {
     const {postId} = requestBody
     const userId = req.currentUser._id
+    console.log({postId, userId})
     // Kiểm tra bài gốc
     const originalPost = await Post.findOne({_id: postId, user_id: userId})
+    console.log('originalPost', originalPost)
     if (!originalPost) {
         abort(404, 'Bài đăng không tồn tại hoặc không thuộc về bạn.')
     }

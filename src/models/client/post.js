@@ -1,5 +1,6 @@
 import mongoose from 'mongoose'
 import createModel from '../base'
+import {isDate} from 'lodash'
 
 const Post = createModel(
     'Post',
@@ -52,6 +53,10 @@ const Post = createModel(
         updated_at: {
             type: Date,
             default: Date.now,
+        },
+        isDeleted: {
+            type: Boolean,
+            default: false,
         },
     },
     {}

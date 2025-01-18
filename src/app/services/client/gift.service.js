@@ -146,7 +146,8 @@ export const updateStatus = async (req) => {
     if (!postOld) {
         return abort(400, 'Không tìm thấy bài viết này')
     } else {
-        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive'})
+        // success
+        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive', isDeleted: true})
     }
     if (!_id) {
         return abort(400, 'ID không được để trống')
@@ -155,6 +156,7 @@ export const updateStatus = async (req) => {
         return abort(400, 'Status không được để trống')
     }
 
+    // success
     const request = await RequestsReceive.updateOne({_id: _id}, {status: status})
 
     if (!request) {

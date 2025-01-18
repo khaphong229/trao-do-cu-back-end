@@ -166,7 +166,7 @@ export const updateStatus = async (req) => {
     if (!postOld) {
         return abort(400, 'Không tìm thấy bài viết này')
     } else {
-        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive'})
+        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive', isDeleted: true})
     }
 
     if (!_id) {

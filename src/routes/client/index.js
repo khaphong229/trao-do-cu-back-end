@@ -2,7 +2,7 @@ import authRouter from './auth.router'
 import categoryRouter from './category.router'
 import postRouter from './post.router'
 import locationsRouter from './location.router'
-import requestGiftRouter from './requests_receive.router'
+import requestGiftRouter from './requests_gift.router'
 import requestExchangeRouter from './requests_exchange.router'
 
 function routeClient(app) {
