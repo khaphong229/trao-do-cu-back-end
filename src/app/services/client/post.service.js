@@ -23,6 +23,7 @@ export async function createRePostSer(requestBody, req) {
 
     // Đánh dấu bài gốc là `isDeleted: true`
     originalPost.status = 'inactive'
+    originalPost.isDeleted = true
     await originalPost.save()
 
     const repostedPost = new Post({
