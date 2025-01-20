@@ -38,12 +38,13 @@ export const register = Joi.object({
     password: Joi.string()
         .min(6)
         .max(MAX_STRING_SIZE)
-        .pattern(VALIDATE_PASSWORD_REGEX)
+        .pattern(VALIDATE_PASSWORD_REGEX) // đã giảm
         .required()
         .label('Mật khẩu')
         .messages({
             'string.pattern.base':
-                '{{#label}} phải có ít nhất một chữ thường, chữ hoa, số và ký tự đặc biệt.',
+                // '{{#label}} phải có ít nhất một chữ thường, chữ hoa, số và ký tự đặc biệt.',
+                '{{#label}} phải có ít nhất 6 kí tự.',
         }),
     phone: Joi.string()
         .trim()

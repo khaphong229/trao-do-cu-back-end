@@ -1,6 +1,5 @@
 import mongoose from 'mongoose'
 import createModel from '../base'
-import {isDate} from 'lodash'
 
 const Post = createModel(
     'Post',

@@ -75,6 +75,58 @@ export const register = Joi.object({
     last_login: Joi.date().iso().allow(null).label('Lần đăng nhập cuối cùng'),
 })
 
+// export const updateProfile = Joi.object({
+//     name: Joi.string()
+//         .trim()
+//         .max(MAX_STRING_SIZE)
+//         .pattern(VALIDATE_FULL_NAME_REGEX)
+//         .required()
+//         .label('Họ và tên')
+//         .messages({'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.'}),
+//     email: Joi.string()
+//         .trim()
+//         .lowercase()
+//         .email()
+//         .max(MAX_STRING_SIZE)
+//         .required()
+//         .label('Email')
+//         .custom(
+//             (value, helpers) =>
+//                 new AsyncValidate(value, async function (req) {
+//                     const user = await User.findOne({email: value, _id: {$ne: req.currentUser._id}})
+//                     return !user ? value : helpers.error('any.exists')
+//                 })
+//         ),
+//     phone: Joi.string()
+//         .trim()
+//         .pattern(VALIDATE_PHONE_REGEX)
+//         .allow('')
+//         .required()
+//         .label('Số điện thoại')
+//         .custom(
+//             (value, helpers) =>
+//                 new AsyncValidate(value, async function (req) {
+//                     const user = await User.findOne({phone: value, _id: {$ne: req.currentUser._id}})
+//                     return !user ? value : helpers.error('any.exists')
+//                 })
+//         ),
+//     avatar: Joi.object({
+//         mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
+//             .required()
+//             .label('Định dạng ảnh'),
+//     })
+//         .unknown(true)
+//         .instance(FileUpload)
+//         .allow('')
+//         .label('Ảnh đại diện'),
+//     address: Joi.string().min(6).max(MAX_STRING_SIZE).allow('').label('Địa chỉ'),
+//     birth_date: Joi.date().iso().allow(null).label('Ngày sinh nhật'),
+//     gender: Joi.string().allow('').label('Giới tính'),
+//     category_care: Joi.array().items(Joi.string()).allow('').label('Các loại đồ quan tâm'),
+//     social_media: Joi.array().items(Joi.string()).allow('').label('Danh sách liên kết mạng xã hội'),
+//     successful_exchanges: Joi.number().label('Số lần trao đổi thành công'),
+//     last_login: Joi.date().iso().allow(null).label('Lần đăng nhập cuối cùng'),
+// })
 export const updateProfile = Joi.object({
     name: Joi.string()
         .trim()
@@ -82,34 +134,21 @@ export const updateProfile = Joi.object({
         .pattern(VALIDATE_FULL_NAME_REGEX)
         .required()
         .label('Họ và tên')
-        .messages({'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.'}),
-    email: Joi.string()
-        .trim()
-        .lowercase()
-        .email()
-        .max(MAX_STRING_SIZE)
-        .required()
-        .label('Email')
-        .custom(
-            (value, helpers) =>
-                new AsyncValidate(value, async function (req) {
-                    const user = await User.findOne({email: value, _id: {$ne: req.currentUser._id}})
-                    return !user ? value : helpers.error('any.exists')
-                })
-        ),
-    phone: Joi.string()
-        .trim()
-        .pattern(VALIDATE_PHONE_REGEX)
-        .allow('')
-        .required()
-        .label('Số điện thoại')
-        .custom(
-            (value, helpers) =>
-                new AsyncValidate(value, async function (req) {
-                    const user = await User.findOne({phone: value, _id: {$ne: req.currentUser._id}})
-                    return !user ? value : helpers.error('any.exists')
-                })
-        ),
+        .messages({
+            'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.',
+        }),
+    email: Joi.string().trim().lowercase().email().max(MAX_STRING_SIZE).required().label('Email'),
+    // .custom(
+    //     (value, helpers) =>
+    //         new AsyncValidate(value, async function (req) {
+    //             const user = await User.findOne({
+    //                 email: value,
+    //                 _id: {$ne: req.currentUser._id},
+    //             })
+    //             return !user ? value : helpers.error('any.exists')
+    //         })
+    // ),
+    phone: Joi.string().pattern(VALIDATE_PHONE_REGEX).allow('', null).label('Số điện thoại'),
     avatar: Joi.object({
         mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
             .required()
@@ -126,8 +165,13 @@ export const updateProfile = Joi.object({
     social_media: Joi.array().items(Joi.string()).allow('').label('Danh sách liên kết mạng xã hội'),
     successful_exchanges: Joi.number().label('Số lần trao đổi thành công'),
     last_login: Joi.date().iso().allow(null).label('Lần đăng nhập cuối cùng'),
+}).custom((obj) => {
+    // Basic check for either phone or social_media
+    if (!obj.phone && (!obj.social_media || !obj.social_media.length)) {
+        throw new Error('Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội')
+    }
+    return obj
 })
-
 export const changePassword = Joi.object({
     password: Joi.string()
         .required()
