@@ -52,25 +52,14 @@ export async function profile(userId) {
     return user
 }
 
-export async function updateProfile(
-    currentUser,
-    {name, email, phone, avatar, address, birth_date, gender, category_care, social_media}
-) {
-    currentUser.name = name
-    currentUser.email = email
-    currentUser.phone = phone
-    currentUser.address = address
-    currentUser.birth_date = birth_date
-    currentUser.gender = gender
-    currentUser.category_care = category_care
-    currentUser.social_media = social_media
-    if (avatar instanceof FileUpload) {
+export async function updateProfile(currentUser, body) {
+    if (body.avatar) {
         if (currentUser.avatar) {
             FileUpload.remove(currentUser.avatar)
         }
-        avatar = avatar.save('images')
-        currentUser.avatar = avatar
+    } else {
+        delete body.avatar
     }
 
-    await currentUser.save()
+    await User.updateOne({_id: currentUser._id}, {$set: {...body}})
 }
