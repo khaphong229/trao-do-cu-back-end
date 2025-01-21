@@ -149,14 +149,8 @@ export const updateProfile = Joi.object({
     //         })
     // ),
     phone: Joi.string().pattern(VALIDATE_PHONE_REGEX).allow('', null).label('Số điện thoại'),
-    avatar: Joi.object({
-        mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
-            .required()
-            .label('Định dạng ảnh'),
-    })
-        .unknown(true)
-        .instance(FileUpload)
-        .allow('')
+    avatar: Joi.string()
+        .allow('') // cho phép giá trị rỗng
         .label('Ảnh đại diện'),
     address: Joi.string().min(6).max(MAX_STRING_SIZE).allow('').label('Địa chỉ'),
     birth_date: Joi.date().iso().allow(null).label('Ngày sinh nhật'),
