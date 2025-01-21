@@ -20,7 +20,7 @@ export const createPostValidate = Joi.object({
 
     image_url: Joi.array()
         .items(Joi.string())
-        .max(5) // Tối đa 5 ảnh
+        .max(9) // Tối đa 9 ảnh
         // .optional()
         .required()
         .default([])

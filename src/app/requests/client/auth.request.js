@@ -20,7 +20,9 @@ export const register = Joi.object({
         .pattern(VALIDATE_FULL_NAME_REGEX)
         .required()
         .label('Họ và tên')
-        .messages({'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.'}),
+        // .messages({'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.'}),
+
+        .messages({'string.pattern.base': '{{#label}} bao gồm tối thiểu 6 kí tự.'}),
     email: Joi.string()
         .trim()
         .max(MAX_STRING_SIZE)
@@ -135,7 +137,7 @@ export const updateProfile = Joi.object({
         .required()
         .label('Họ và tên')
         .messages({
-            'string.pattern.base': '{{#label}} không bao gồm số hay ký tự đặc biệt.',
+            'string.pattern.base': '{{#label}} Tối thiểu phải 6 kí tự',
         }),
     email: Joi.string().trim().lowercase().email().max(MAX_STRING_SIZE).required().label('Email'),
     // .custom(
@@ -159,13 +161,17 @@ export const updateProfile = Joi.object({
     social_media: Joi.array().items(Joi.string()).allow('').label('Danh sách liên kết mạng xã hội'),
     successful_exchanges: Joi.number().label('Số lần trao đổi thành công'),
     last_login: Joi.date().iso().allow(null).label('Lần đăng nhập cuối cùng'),
-}).custom((obj) => {
-    // Basic check for either phone or social_media
-    if (!obj.phone && (!obj.social_media || !obj.social_media.length)) {
-        throw new Error('Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội')
-    }
-    return obj
 })
+    .custom((obj, helpers) => {
+        // Basic check for either phone or social_media
+        if (!obj.phone && (!obj.social_media || !obj.social_media.length)) {
+            return helpers.error('custom.contact')
+        }
+        return obj
+    })
+    .messages({
+        'custom.contact': 'Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội',
+    })
 export const changePassword = Joi.object({
     password: Joi.string()
         .required()

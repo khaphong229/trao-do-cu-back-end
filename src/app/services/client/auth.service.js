@@ -48,7 +48,7 @@ export async function blockToken(token) {
 
 export async function profile(userId) {
     const user = await User.findOne({_id: userId})
-    user.avatar = user.avatar && LINK_STATIC_URL + user.avatar
+    // user.avatar = user.avatar && LINK_STATIC_URL + user.avatar
     return user
 }
 
