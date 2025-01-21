@@ -41,7 +41,9 @@ export const APP_URL_CLIENT = process.env.APP_URL_CLIENT
 assert(!_.isEmpty(APP_URL_CLIENT), assertMsg('APP_URL_CLIENT'))
 
 export const OTHER_URLS_CLIENT = process.env.OTHER_URLS_CLIENT
-    ? JSON.parse(process.env.OTHER_URLS_CLIENT)
+    ? process.env.OTHER_URLS_CLIENT.startsWith('[')
+        ? JSON.parse(process.env.OTHER_URLS_CLIENT)
+        : [process.env.OTHER_URLS_CLIENT]
     : []
 assert(_.isArray(OTHER_URLS_CLIENT), 'OTHER_URLS_CLIENT must be an array.')
 
