@@ -81,6 +81,9 @@ assert(!_.isEmpty(MAIL_HOST), assertMsg('MAIL_HOST'))
 assert(!_.isEmpty(MAIL_PORT), assertMsg('MAIL_PORT'))
 assert(!_.isEmpty(MAIL_USERNAME), assertMsg('MAIL_USERNAME'))
 assert(!_.isEmpty(MAIL_PASSWORD), assertMsg('MAIL_PASSWORD'))
+// cons value category default
+
+export const category_id_default = '678f5153f323c8f31c70c5c8'
 
 // other
 export const TOKEN_TYPE = {
