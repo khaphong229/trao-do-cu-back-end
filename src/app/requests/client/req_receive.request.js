@@ -37,7 +37,7 @@ export const createReceiveRequestValidate = Joi.object({
     })
         .optional()
         .allow('')
-        .label('Liên hệ mạng xã hội'),
+        .label('Danh sách liên kết mạng xã hội'),
 
     contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
 

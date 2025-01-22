@@ -47,7 +47,14 @@ export const createExchangeRequestValidate = Joi.object({
         .optional()
         .label('Số điện thoại liên hệ'),
 
-    contact_social_media: Joi.array().items(Joi.string()).allow('').label('Danh sách liên kết mạng xã hội'),
+    contact_social_media: Joi.object({
+        facebook: Joi.string().uri().optional(),
+        zalo: Joi.string().optional(),
+        instagram: Joi.string().uri().optional(),
+    })
+        .optional()
+        .allow('')
+        .label('Danh sách liên kết mạng xã hội'),
 
     contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
 
