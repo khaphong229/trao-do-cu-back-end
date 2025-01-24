@@ -5,7 +5,7 @@ import * as userService from '../../services/admin/user.service'
 
 export async function login(req, res) {
     const validLogin = await authService.checkValidLogin(req.body)
-
+    // console.log('validLogin', validLogin)
     if (validLogin) {
         res.jsonify(authService.authToken(validLogin))
     } else {
@@ -53,4 +53,14 @@ export async function resetPassword(req, res) {
     await userService.resetPassword(req.currentUser, req.body.new_password)
     await authService.blockToken(req.params.token)
     res.status(201).jsonify('Cập nhật mật khẩu thành công.')
+}
+
+export const loginSuccess = async (req, res) => {
+    const {googleId} = req.body
+    if (!googleId) {
+        abort(400, 'Google ID is required')
+    }
+    const data = await authService.loginSuccessGG(googleId)
+    res.jsonify(authService.authToken(data))
+    // console.log('data', data)
 }

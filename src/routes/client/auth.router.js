@@ -5,6 +5,7 @@ import * as authMiddleware from '../../app/middleware/auth.middleware'
 import * as authRequest from '../../app/requests/client/auth.request'
 import * as authController from '../../app/controllers/client/auth.controller'
 import {asyncHandler} from '@/utils/helpers'
+import passport from 'passport'
 
 const authRouter = Router()
 
@@ -46,5 +47,41 @@ authRouter.post(
     asyncHandler(validate(authRequest.resetPassword)),
     asyncHandler(authController.resetPassword)
 )
+
+// Login GG
+authRouter.get('/google', passport.authenticate('google', {scope: ['profile', 'email'], session: false}))
+
+// authRouter.get(
+//     '/google/callback',
+//     (req, res, next) => {
+//         passport.authenticate('google', (err, profile) => {
+//             req.currentUser = profile
+//             next()
+//         })(req, res, next),
+//         (req, res) => {
+//             const url_Fe = `${process.env.APP_URL_CLIENT}/login-success/${req.currentUser?.id}`
+//             res.redirect(url_Fe)
+//         }
+//     }
+
+//     // function (req, res) {
+//     //     // Successful authentication, redirect home.
+//     //     res.redirect('/')
+//     // }
+// )
+authRouter.get(
+    '/google/callback',
+    (req, res, next) => {
+        passport.authenticate('google', (err, profile) => {
+            req.currentUser = profile
+            next()
+        })(req, res, next)
+    },
+    (req, res) => {
+        res.redirect(`${process.env.APP_URL_CLIENT}/login-success/${req.currentUser?.googleId}`)
+    }
+)
+
+authRouter.post('/login-success', asyncHandler(authController.loginSuccess))
 
 export default authRouter

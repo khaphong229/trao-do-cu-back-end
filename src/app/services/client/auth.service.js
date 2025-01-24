@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import {User} from '@/models'
 import {cache, LOGIN_EXPIRE_IN, LINK_STATIC_URL, TOKEN_TYPE} from '@/configs'
 import {FileUpload} from '@/utils/classes'
-import {generateToken} from '@/utils/helpers'
+import {abort, generateToken} from '@/utils/helpers'
 
 export const tokenBlocklist = cache.create('token-block-list')
 
@@ -62,4 +62,12 @@ export async function updateProfile(currentUser, body) {
     }
 
     await User.updateOne({_id: currentUser._id}, {$set: {...body}})
+}
+
+export async function loginSuccessGG(googleId) {
+    const user = await User.findOne({googleId: googleId})
+    if (!user) {
+        return abort(400, 'Not found user by google')
+    }
+    return user
 }
