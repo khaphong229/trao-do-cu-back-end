@@ -53,20 +53,79 @@ export async function create(requestBody) {
     return newExchangeRequest
 }
 
+// export const filter = async (qs, limit, current, req) => {
+//     // check nếu là mình thì bỏ <thiếu>
+//     const userId = req.currentUser._id
+//     // Tìm các bài post của user của người dăng
+//     const userPosts = await Post.find({
+//         user_id: userId,
+//         type: 'exchange',
+//     })
+//     // console.log('userPosts : ', userPosts)
+
+//     let {filter} = aqp(qs)
+//     delete filter.current
+//     delete filter.pageSize
+//     filter.isDeleted = false
+//     let {q} = filter
+//     delete filter.q
+//     if (q) {
+//         q = q ? {$regex: q, $options: 'i'} : null
+//         filter = {
+//             ...(q && {$or: [{title: q}, {description: q}]}),
+//         }
+//         filter.isDeleted = false
+//     }
+//     let {sort} = aqp(qs)
+//     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
+//     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
+//     if (!sort) sort = {created_at: -1}
+//     // console.log({sort, current, limit, q, filter})
+//     // console.log(userPosts.map((post) => post._id))
+//     // => tạo ra mảng mới chỉ lưu id thôi.
+//     // Lấy các yêu cầu nhận liên quan đến các bài post đó
+//     const exchangeRequests = await RequestsExchange.find({
+//         post_id: {$in: userPosts.map((post) => post._id)},
+//         ...filter,
+//     })
+//         .skip((current - 1) * limit)
+//         .limit(limit)
+//         .sort(sort)
+//         .populate('post_id')
+//         .populate('user_req_id')
+//     // console.log('receiveRequests : ', receiveRequests)
+//     // Lấy danh sách post_id từ bài viết
+//     const postIds = userPosts.map((post) => post._id)
+
+//     // Đảm bảo `filter` chỉ chứa bản ghi của người dùng hiện tại
+//     const adjustedFilter = {
+//         ...filter,
+//         post_id: {$in: postIds}, // Chỉ lấy các bản ghi liên quan đến post của người dùng
+//     }
+
+//     // Đếm các tài liệu liên quan trong RequestsReceive
+//     const total = await RequestsExchange.countDocuments(adjustedFilter)
+
+//     return {total, current, limit, exchangeRequests}
+// }
+
 export const filter = async (qs, limit, current, req) => {
-    // check nếu là mình thì bỏ <thiếu>
+    // Kiểm tra user hiện tại
     const userId = req.currentUser._id
-    // Tìm các bài post của user của người dăng
+
+    // Tìm các bài post của user hiện tại với type 'exchange'
     const userPosts = await Post.find({
         user_id: userId,
         type: 'exchange',
     })
-    // console.log('userPosts : ', userPosts)
 
     let {filter} = aqp(qs)
+    const {statusPotsId} = filter // Lấy statusPotsId (đại diện cho status của post_id)
+    delete filter.statusPotsId // Xóa statusPotsId khỏi filter chính để xử lý riêng
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
+
     let {q} = filter
     delete filter.q
     if (q) {
@@ -76,14 +135,13 @@ export const filter = async (qs, limit, current, req) => {
         }
         filter.isDeleted = false
     }
+
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    // console.log({sort, current, limit, q, filter})
-    // console.log(userPosts.map((post) => post._id))
-    // => tạo ra mảng mới chỉ lưu id thôi.
-    // Lấy các yêu cầu nhận liên quan đến các bài post đó
+
+    // Lấy các yêu cầu liên quan đến các bài post
     const exchangeRequests = await RequestsExchange.find({
         post_id: {$in: userPosts.map((post) => post._id)},
         ...filter,
@@ -91,22 +149,27 @@ export const filter = async (qs, limit, current, req) => {
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .populate('post_id')
+        .populate({
+            path: 'post_id',
+            match: statusPotsId ? {status: statusPotsId} : {}, // Lọc thêm theo status nếu statusPotsId tồn tại
+        })
         .populate('user_req_id')
-    // console.log('receiveRequests : ', receiveRequests)
-    // Lấy danh sách post_id từ bài viết
-    const postIds = userPosts.map((post) => post._id)
 
-    // Đảm bảo `filter` chỉ chứa bản ghi của người dùng hiện tại
-    const adjustedFilter = {
+    // Lọc các kết quả không có post_id sau khi populate
+    const filteredExchangeRequests = exchangeRequests.filter((req) => req.post_id)
+
+    // Đếm số tài liệu liên quan sau khi áp dụng điều kiện
+    const total = await RequestsExchange.find({
+        post_id: {$in: userPosts.map((post) => post._id)}, // Lọc theo các bài viết của user
         ...filter,
-        post_id: {$in: postIds}, // Chỉ lấy các bản ghi liên quan đến post của người dùng
-    }
+    })
+        .populate({
+            path: 'post_id',
+            match: statusPotsId ? {status: statusPotsId} : {}, // Áp dụng bộ lọc statusPotsId
+        })
+        .then((docs) => docs.filter((doc) => doc.post_id).length) // Đếm các tài liệu có post_id hợp lệ
 
-    // Đếm các tài liệu liên quan trong RequestsReceive
-    const total = await RequestsExchange.countDocuments(adjustedFilter)
-
-    return {total, current, limit, exchangeRequests}
+    return {total: filteredExchangeRequests, current, limit, exchangeRequests: filteredExchangeRequests}
 }
 
 export const filterMe = async (qs, limit, current, req) => {
