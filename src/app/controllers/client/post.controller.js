@@ -14,7 +14,7 @@ export async function createRePost(req, res) {
 export const readRoot = async (req, res) => {
     const limit = parseInt(req.query.pageSize)
     const current = parseInt(req.query.current)
-    const result = await postService.filter(req.query, limit, current)
+    const result = await postService.filter(req.query, limit, current, req)
     res.jsonify(result)
 }
 
@@ -27,6 +27,6 @@ export const readRootMe = async (req, res) => {
 
 // [GET] : /post/:id
 export const detailPost = async (req, res) => {
-    const result = await postService.details(req.params.id)
+    const result = await postService.details(req.params.id, req)
     res.jsonify(result)
 }

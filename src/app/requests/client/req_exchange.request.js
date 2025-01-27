@@ -23,11 +23,10 @@ export const createExchangeRequestValidate = Joi.object({
         .required()
         .label('ID người yêu cầu'),
 
-    title: Joi.string().trim().min(10).max(MAX_STRING_SIZE).required().label('Tiêu đề yêu cầu trao đổi'),
+    title: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Tiêu đề yêu cầu trao đổi'),
 
     description: Joi.string()
         .trim()
-        .min(10)
         .max(MAX_STRING_SIZE)
         .optional()
         .allow('')
