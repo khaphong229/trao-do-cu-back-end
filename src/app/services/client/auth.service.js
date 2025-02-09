@@ -1,7 +1,7 @@
 import moment from 'moment'
 import jwt from 'jsonwebtoken'
 import {User} from '@/models'
-import {cache, LOGIN_EXPIRE_IN, LINK_STATIC_URL, TOKEN_TYPE} from '@/configs'
+import {cache, LOGIN_EXPIRE_IN, TOKEN_TYPE} from '@/configs'
 import {FileUpload} from '@/utils/classes'
 import {abort, generateToken} from '@/utils/helpers'
 
