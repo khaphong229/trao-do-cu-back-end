@@ -1,23 +1,27 @@
+import Notification from '@/models/client/notification'
 import Post from '@/models/client/post'
 import RequestsReceive from '@/models/client/requests_receive'
 import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
 
 export async function create(requestBody) {
-    // tạo mới thì những bài ex vẫn nằm đc ở đây => done
+    // Lấy các thông tin cần thiết từ requestBody
     const {post_id, user_req_id, contact_phone, contact_social_media, contact_address, reason_receive} =
         requestBody
-    // Kiểm tra bài post tồn tại và đúng trạng thái
-    const postIsValid = await Post.findOne({_id: requestBody.post_id, type: 'gift'})
+
+    // 1. Kiểm tra bài post tồn tại và đúng trạng thái: phải là bài cho 'gift'
+    const postIsValid = await Post.findOne({_id: post_id, type: 'gift'})
     if (!postIsValid) {
         return abort(404, 'Bài post không tồn tại hoặc đây là bài trao đổi.')
     }
-    // Kiểm tra xem người dùng đã gửi yêu cầu cho bài post này chưa
+
+    // 2. Kiểm tra xem người dùng đã gửi yêu cầu cho bài post này chưa
     const existingRequest = await RequestsReceive.findOne({
         post_id,
         user_req_id,
     })
-    // Kiểm tra xem người yêu cầu có trùng với người đăng bài hay không
+
+    // 3. Kiểm tra xem người yêu cầu có trùng với người đăng bài hay không
     if (postIsValid.user_id.toString() === user_req_id.toString()) {
         return abort(400, 'Bạn không thể gửi yêu cầu cho chính bài post này')
     }
@@ -26,7 +30,7 @@ export async function create(requestBody) {
         return abort(400, 'Bạn đã gửi yêu cầu cho bài đăng của mình!')
     }
 
-    // Tạo request mới
+    // 4. Tạo mới yêu cầu nhận đồ (RequestsReceive)
     const newRequest = new RequestsReceive({
         post_id,
         user_req_id,
@@ -34,10 +38,27 @@ export async function create(requestBody) {
         contact_social_media,
         contact_address,
         reason_receive,
-        status: 'pending',
+        status: 'pending', // Trạng thái ban đầu là pending
     })
     await newRequest.save()
 
+    // 5. Tạo mới thông báo (Notification) cho chủ bài đăng
+    //    - Người nhận thông báo: Chủ bài đăng (postIsValid.user_id)
+    //    - Loại thông báo: 'request_receive' (yêu cầu nhận đồ)
+    //    - post_id: Liên kết đến bài post
+    //    - source_id: _id của yêu cầu nhận mới tạo (newRequest._id)
+    const newNotification = new Notification({
+        user_id: postIsValid.user_id, // Chủ bài đăng nhận thông báo
+        type: 'request_receive', // Loại thông báo cho yêu cầu nhận đồ
+        post_id: post_id, // Liên kết với bài post
+        source_id: newRequest._id, // Liên kết đến yêu cầu nhận vừa tạo
+        isRead: false, // Mặc định thông báo chưa được đọc
+        created_at: new Date(),
+        updated_at: new Date(),
+    })
+    await newNotification.save()
+
+    // 6. Trả về bản ghi yêu cầu nhận mới tạo
     return newRequest
 }
 
@@ -197,17 +218,11 @@ export const filterMe = async (qs, limit, current, req) => {
         requests,
     }
 }
+
 export const updateStatus = async (req) => {
-    // Trước khi phê duyệt nên đối status của bài Post
     const {_id, status} = req.body
 
-    const postOld = await RequestsReceive.findOne({_id: _id}).lean()
-    if (!postOld) {
-        return abort(400, 'Không tìm thấy bài viết này')
-    } else {
-        // success
-        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive'})
-    }
+    // Kiểm tra bắt buộc: _id và status không được để trống
     if (!_id) {
         return abort(400, 'ID không được để trống')
     }
@@ -215,14 +230,43 @@ export const updateStatus = async (req) => {
         return abort(400, 'Status không được để trống')
     }
 
-    // success
-    const request = await RequestsReceive.updateOne({_id: _id}, {status: status})
+    // Tìm bản ghi yêu cầu nhận đồ trong RequestsReceive theo _id
+    const requestDoc = await RequestsReceive.findOne({_id: _id}).lean()
+    if (!requestDoc) {
+        return abort(400, 'Không tìm thấy bài viết này')
+    } else {
+        // Cập nhật trạng thái của bài post liên quan:
+        // Nếu yêu cầu nhận được duyệt, bài post chuyển sang trạng thái "inactive"
+        await Post.updateMany({_id: requestDoc.post_id}, {status: 'inactive'})
+    }
 
-    if (!request) {
+    // Cập nhật trạng thái của yêu cầu nhận đồ
+    const updateResult = await RequestsReceive.updateOne({_id: _id}, {status: status})
+    if (!updateResult) {
         return abort(400, 'Không tìm thấy document')
     }
 
-    return request
+    // Nếu trạng thái mới là "accepted", tạo thông báo cho người gửi yêu cầu (user_req_id)
+    if (status === 'accepted') {
+        const newNotification = new Notification({
+            // Người nhận thông báo là người đã gửi yêu cầu nhận đồ
+            user_id: requestDoc.user_req_id,
+            // Loại thông báo: approve_receive (chấp nhận yêu cầu nhận đồ)
+            type: 'approve_receive',
+            // Liên kết thông báo với bài post gốc
+            post_id: requestDoc.post_id,
+            // source_id là ID của yêu cầu nhận đồ đã được duyệt
+            source_id: _id,
+            // Mặc định thông báo chưa được đọc
+            isRead: false,
+            // Thiết lập thời gian tạo và cập nhật
+            created_at: new Date(),
+            updated_at: new Date(),
+        })
+        await newNotification.save()
+    }
+
+    return updateResult
 }
 
 // Xóa bản ghi
