@@ -10,3 +10,18 @@ export async function readRoot(req, res) {
     // Trả về kết quả dưới dạng JSON
     res.jsonify(result)
 }
+
+export async function markNotificationAsRead(req, res) {
+    const notificationId = req.params.id
+    const userId = req.currentUser._id
+
+    const result = await notificationService.markNotificationAsRead(userId, notificationId)
+    res.jsonify(result)
+}
+
+export async function markAllNotificationsAsRead(req, res) {
+    const userId = req.currentUser._id
+
+    const result = await notificationService.markAllNotificationsAsRead(userId, res)
+    res.jsonify(result)
+}

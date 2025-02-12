@@ -1,4 +1,5 @@
 import Notification from '@/models/client/notification'
+import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
 
 export const filter = async (qs, limit, current, req) => {
@@ -49,4 +50,27 @@ export const filter = async (qs, limit, current, req) => {
     const total = await Notification.countDocuments(filter)
     // console.log('filter', filter)
     return {total, current, limit, data: processedData}
+}
+
+export async function markNotificationAsRead(userId, notificationId) {
+    const notification = await Notification.findOneAndUpdate(
+        {_id: notificationId, user_id: userId},
+        {isRead: true, updated_at: new Date()},
+        {new: true} // Trả về document sau khi cập nhật
+    )
+    if (!notification) {
+        return abort(400, 'Không có thông báo nào được tìm thấy!')
+    }
+    return notification
+}
+
+export async function markAllNotificationsAsRead(userId, res) {
+    const result = await Notification.updateMany(
+        {user_id: userId, isRead: false},
+        {isRead: true, updated_at: new Date()}
+    )
+    if (result.modifiedCount === 0) {
+        res.status(201).jsonify('Tất cả đã được đoc!')
+    }
+    return result
 }
