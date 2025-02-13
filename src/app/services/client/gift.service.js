@@ -52,6 +52,7 @@ export async function create(requestBody) {
         type: 'request_receive', // Loại thông báo cho yêu cầu nhận đồ
         post_id: post_id, // Liên kết với bài post
         source_id: newRequest._id, // Liên kết đến yêu cầu nhận vừa tạo
+        source_model: 'RequestsReceive',
         isRead: false, // Mặc định thông báo chưa được đọc
         created_at: new Date(),
         updated_at: new Date(),
@@ -62,61 +63,6 @@ export async function create(requestBody) {
     return newRequest
 }
 
-// export const filter = async (qs, limit, current, req) => {
-//     const userId = req.currentUser._id
-//     // Tìm các bài post của user của người dăng
-//     const userPosts = await Post.find({
-//         user_id: userId,
-//         type: 'gift',
-//     })
-//     // console.log('userPosts : ', userPosts)
-//     let {filter} = aqp(qs)
-//     const {statusPotsId} = filter
-//     delete filter.current
-//     delete filter.pageSize
-//     filter.isDeleted = false
-//     let {q} = filter
-//     delete filter.q
-//     console.log('filter', filter)
-//     if (q) {
-//         q = q ? {$regex: q, $options: 'i'} : null
-//         filter = {
-//             ...(q && {$or: [{contact_phone: q}, {contact_address: q}, {contact_social_media: q}]}),
-//         }
-//         filter.isDeleted = false
-//     }
-//     let {sort} = aqp(qs)
-//     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
-//     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
-//     if (!sort) sort = {created_at: -1}
-//     // console.log({sort, current, limit, q, filter})
-//     // console.log(userPosts.map((post) => post._id)) => tạo ra mảng mới chỉ lưu id thôi.
-//     // Lấy các yêu cầu nhận liên quan đến các bài post đó
-//     const receiveRequests = await RequestsReceive.find({
-//         post_id: {$in: userPosts.map((post) => post._id)},
-//         ...filter,
-//         // post_id: '6761a5a5eaa1e41fa5afbc45',
-//     })
-//         .skip((current - 1) * limit)
-//         .limit(limit)
-//         .sort(sort)
-//         .populate('post_id')
-//         .populate('user_req_id')
-//     // console.log('receiveRequests : ', receiveRequests)
-
-//     // Lấy danh sách post_id từ bài viết
-//     const postIds = userPosts.map((post) => post._id)
-
-//     // Đảm bảo `filter` chỉ chứa bản ghi của người dùng hiện tại
-//     const adjustedFilter = {
-//         ...filter,
-//         post_id: {$in: postIds}, // Chỉ lấy các bản ghi liên quan đến post của người dùng
-//     }
-
-//     // Đếm các tài liệu liên quan trong RequestsReceive
-//     const total = await RequestsReceive.countDocuments(adjustedFilter)
-//     return {total, current, limit, receiveRequests}
-// }
 export const filter = async (qs, limit, current, req) => {
     const userId = req.currentUser._id
 
@@ -257,6 +203,9 @@ export const updateStatus = async (req) => {
             post_id: requestDoc.post_id,
             // source_id là ID của yêu cầu nhận đồ đã được duyệt
             source_id: _id,
+
+            source_model: 'RequestsReceive',
+
             // Mặc định thông báo chưa được đọc
             isRead: false,
             // Thiết lập thời gian tạo và cập nhật

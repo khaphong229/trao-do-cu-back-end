@@ -34,10 +34,25 @@ export const filter = async (qs, limit, current, req) => {
 
     // Truy vấn danh sách notifications với filter, phân trang, sắp xếp và populate thông tin liên quan
     const data = await Notification.find(filter)
-        // Populate thông tin bài post liên quan (lấy các trường cần thiết)
-        .populate('post_id')
-        // Populate thông tin người dùng (ví dụ: tên, email, avatar)
-        .populate('user_id', 'name email avatar')
+        .populate({
+            path: 'post_id',
+            select: 'title specificLocation city image_url description',
+            populate: {
+                path: 'user_id',
+                // select: 'name email avatar',
+            },
+        })
+        .populate('user_id')
+        .populate({
+            path: 'source_id',
+            select: 'user_req_id',
+            populate: [
+                {
+                    path: 'user_req_id',
+                    // select: 'name email avatar',
+                },
+            ],
+        })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)

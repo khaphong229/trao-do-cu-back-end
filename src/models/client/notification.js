@@ -61,6 +61,13 @@ const Notification = createModel(
         source_id: {
             type: mongoose.Schema.Types.ObjectId,
             required: true,
+            refPath: 'source_model', // Dynamic reference, refPath trỏ tới trường 'source_model'
+        },
+        // source_model: Chỉ định tên của model mà source_id tham chiếu.
+        source_model: {
+            type: String,
+            required: true,
+            enum: ['RequestsExchange', 'RequestsReceive'], // Ví dụ, tùy vào kiểu yêu cầu của bạn
         },
         // isRead: Trạng thái đã đọc của thông báo.
         // Mặc định là false khi thông báo mới được tạo.

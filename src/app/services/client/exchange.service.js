@@ -66,6 +66,7 @@ export async function create(requestBody) {
         post_id: post_id, // Liên kết với bài đăng
         source_id: newExchangeRequest._id, // Liên kết với bản ghi yêu cầu trao đổi
         isRead: false,
+        source_model: 'RequestsExchange',
         created_at: new Date(),
         updated_at: new Date(),
     })
@@ -76,62 +77,6 @@ export async function create(requestBody) {
     // 6. Trả về yêu cầu trao đổi mới được tạo
     return newExchangeRequest
 }
-
-// export const filter = async (qs, limit, current, req) => {
-//     // check nếu là mình thì bỏ <thiếu>
-//     const userId = req.currentUser._id
-//     // Tìm các bài post của user của người dăng
-//     const userPosts = await Post.find({
-//         user_id: userId,
-//         type: 'exchange',
-//     })
-//     // console.log('userPosts : ', userPosts)
-
-//     let {filter} = aqp(qs)
-//     delete filter.current
-//     delete filter.pageSize
-//     filter.isDeleted = false
-//     let {q} = filter
-//     delete filter.q
-//     if (q) {
-//         q = q ? {$regex: q, $options: 'i'} : null
-//         filter = {
-//             ...(q && {$or: [{title: q}, {description: q}]}),
-//         }
-//         filter.isDeleted = false
-//     }
-//     let {sort} = aqp(qs)
-//     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
-//     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
-//     if (!sort) sort = {created_at: -1}
-//     // console.log({sort, current, limit, q, filter})
-//     // console.log(userPosts.map((post) => post._id))
-//     // => tạo ra mảng mới chỉ lưu id thôi.
-//     // Lấy các yêu cầu nhận liên quan đến các bài post đó
-//     const exchangeRequests = await RequestsExchange.find({
-//         post_id: {$in: userPosts.map((post) => post._id)},
-//         ...filter,
-//     })
-//         .skip((current - 1) * limit)
-//         .limit(limit)
-//         .sort(sort)
-//         .populate('post_id')
-//         .populate('user_req_id')
-//     // console.log('receiveRequests : ', receiveRequests)
-//     // Lấy danh sách post_id từ bài viết
-//     const postIds = userPosts.map((post) => post._id)
-
-//     // Đảm bảo `filter` chỉ chứa bản ghi của người dùng hiện tại
-//     const adjustedFilter = {
-//         ...filter,
-//         post_id: {$in: postIds}, // Chỉ lấy các bản ghi liên quan đến post của người dùng
-//     }
-
-//     // Đếm các tài liệu liên quan trong RequestsReceive
-//     const total = await RequestsExchange.countDocuments(adjustedFilter)
-
-//     return {total, current, limit, exchangeRequests}
-// }
 
 export const filter = async (qs, limit, current, req) => {
     // Kiểm tra user hiện tại
@@ -285,6 +230,7 @@ export const updateStatus = async (req) => {
             user_id: requestDoc.user_req_id,
             // Loại thông báo cho việc duyệt yêu cầu trao đổi
             type: 'approve_exchange',
+            source_model: 'RequestsExchange',
             // Liên kết thông báo với bài post liên quan
             post_id: requestDoc.post_id,
             // Lưu trữ ID của yêu cầu trao đổi đã được duyệt
