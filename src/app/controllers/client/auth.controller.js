@@ -42,6 +42,7 @@ export async function changePassword(req, res) {
 
 export function forgotPassword(req, res) {
     const token = generateToken({user_id: req.currentUser._id}, TOKEN_TYPE.FORGOT_PASSWORD, 600)
+    console.log(token)
     res.sendMail(req.currentUser.email, 'Quên mật khẩu', 'emails/forgot-password', {
         name: req.currentUser.name,
         linkResetPassword: `${LINK_RESET_PASSWORD_URL}?token=${encodeURIComponent(token)}`,
