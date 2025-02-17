@@ -23,11 +23,10 @@ export const createExchangeRequestValidate = Joi.object({
         .required()
         .label('ID người yêu cầu'),
 
-    title: Joi.string().trim().min(10).max(MAX_STRING_SIZE).required().label('Tiêu đề yêu cầu trao đổi'),
+    title: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Tiêu đề yêu cầu trao đổi'),
 
     description: Joi.string()
         .trim()
-        .min(10)
         .max(MAX_STRING_SIZE)
         .optional()
         .allow('')
@@ -35,7 +34,7 @@ export const createExchangeRequestValidate = Joi.object({
 
     image_url: Joi.array()
         .items(Joi.string())
-        .max(5) // Tối đa 5 ảnh
+        .max(10) // Tối đa 5 ảnh
         // .optional()
         .required()
         .default([])
@@ -54,7 +53,7 @@ export const createExchangeRequestValidate = Joi.object({
     })
         .optional()
         .allow('')
-        .label('Liên hệ mạng xã hội'),
+        .label('Danh sách liên kết mạng xã hội'),
 
     contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
 
@@ -64,3 +63,20 @@ export const createExchangeRequestValidate = Joi.object({
         .default('pending')
         .label('Trạng thái yêu cầu'),
 })
+    .custom((obj, helpers) => {
+        const hasPhone = !!obj.contact_phone
+        const hasSocialMedia =
+            obj.contact_social_media &&
+            (obj.contact_social_media.facebook ||
+                obj.contact_social_media.zalo ||
+                obj.contact_social_media.instagram)
+
+        if (!hasPhone && !hasSocialMedia) {
+            return helpers.error('custom.contact')
+        }
+
+        return obj
+    })
+    .messages({
+        'custom.contact': 'Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội',
+    })

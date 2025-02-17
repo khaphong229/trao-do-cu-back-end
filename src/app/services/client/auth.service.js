@@ -1,9 +1,9 @@
 import moment from 'moment'
 import jwt from 'jsonwebtoken'
 import {User} from '@/models'
-import {cache, LOGIN_EXPIRE_IN, LINK_STATIC_URL, TOKEN_TYPE} from '@/configs'
+import {cache, LOGIN_EXPIRE_IN, TOKEN_TYPE} from '@/configs'
 import {FileUpload} from '@/utils/classes'
-import {generateToken} from '@/utils/helpers'
+import {abort, generateToken} from '@/utils/helpers'
 
 export const tokenBlocklist = cache.create('token-block-list')
 
@@ -48,29 +48,26 @@ export async function blockToken(token) {
 
 export async function profile(userId) {
     const user = await User.findOne({_id: userId})
-    user.avatar = user.avatar && LINK_STATIC_URL + user.avatar
+    // user.avatar = user.avatar && LINK_STATIC_URL + user.avatar
     return user
 }
 
-export async function updateProfile(
-    currentUser,
-    {name, email, phone, avatar, address, birth_date, gender, category_care, social_media}
-) {
-    currentUser.name = name
-    currentUser.email = email
-    currentUser.phone = phone
-    currentUser.address = address
-    currentUser.birth_date = birth_date
-    currentUser.gender = gender
-    currentUser.category_care = category_care
-    currentUser.social_media = social_media
-    if (avatar instanceof FileUpload) {
+export async function updateProfile(currentUser, body) {
+    if (body.avatar) {
         if (currentUser.avatar) {
             FileUpload.remove(currentUser.avatar)
         }
-        avatar = avatar.save('images')
-        currentUser.avatar = avatar
+    } else {
+        delete body.avatar
     }
 
-    await currentUser.save()
+    await User.updateOne({_id: currentUser._id}, {$set: {...body}})
+}
+
+export async function loginSuccessGG(googleId) {
+    const user = await User.findOne({googleId: googleId})
+    if (!user) {
+        return abort(400, 'Not found user by google')
+    }
+    return user
 }

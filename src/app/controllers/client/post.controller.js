@@ -5,11 +5,16 @@ export async function createPost(req, res) {
     res.status(201).jsonify('Tạo mới bài đăng thành công.')
 }
 
+export async function createRePost(req, res) {
+    await postService.createRePostSer(req.body, req)
+    res.status(201).jsonify('Đăng lại bài thành công.')
+}
+
 // [GET] : /post?
 export const readRoot = async (req, res) => {
     const limit = parseInt(req.query.pageSize)
     const current = parseInt(req.query.current)
-    const result = await postService.filter(req.query, limit, current)
+    const result = await postService.filter(req.query, limit, current, req)
     res.jsonify(result)
 }
 
@@ -22,6 +27,6 @@ export const readRootMe = async (req, res) => {
 
 // [GET] : /post/:id
 export const detailPost = async (req, res) => {
-    const result = await postService.details(req.params.id)
+    const result = await postService.details(req.params.id, req)
     res.jsonify(result)
 }

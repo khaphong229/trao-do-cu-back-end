@@ -26,10 +26,7 @@ export const NODE_ENV = Object.values(APP_ENV).includes(process.env.NODE_ENV)
 
 // Loads `.env` file contents into process.env
 dotenv.config({
-    path: [
-        path.join(APP_DIR, `.env.${NODE_ENV}`),
-        path.join(APP_DIR, '.env')
-    ],
+    path: [path.join(APP_DIR, `.env.${NODE_ENV}`), path.join(APP_DIR, '.env')],
 })
 
 // environment
@@ -44,7 +41,9 @@ export const APP_URL_CLIENT = process.env.APP_URL_CLIENT
 assert(!_.isEmpty(APP_URL_CLIENT), assertMsg('APP_URL_CLIENT'))
 
 export const OTHER_URLS_CLIENT = process.env.OTHER_URLS_CLIENT
-    ? JSON.parse(process.env.OTHER_URLS_CLIENT)
+    ? process.env.OTHER_URLS_CLIENT.startsWith('[')
+        ? JSON.parse(process.env.OTHER_URLS_CLIENT)
+        : [process.env.OTHER_URLS_CLIENT]
     : []
 assert(_.isArray(OTHER_URLS_CLIENT), 'OTHER_URLS_CLIENT must be an array.')
 
@@ -84,6 +83,9 @@ assert(!_.isEmpty(MAIL_HOST), assertMsg('MAIL_HOST'))
 assert(!_.isEmpty(MAIL_PORT), assertMsg('MAIL_PORT'))
 assert(!_.isEmpty(MAIL_USERNAME), assertMsg('MAIL_USERNAME'))
 assert(!_.isEmpty(MAIL_PASSWORD), assertMsg('MAIL_PASSWORD'))
+// cons value category default
+
+export const category_id_default = '678f5153f323c8f31c70c5c8'
 
 // other
 export const TOKEN_TYPE = {
@@ -157,5 +159,8 @@ export const JOI_DEFAULT_OPTIONS = {
 }
 
 export const VALIDATE_PHONE_REGEX = /^(0[235789])[0-9]{8}$/
-export const VALIDATE_PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])/
-export const VALIDATE_FULL_NAME_REGEX = /^[a-zA-ZÀ-ỹ ]+$/
+// export const VALIDATE_PASSWORD_REGEX = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[\W_])/
+export const VALIDATE_PASSWORD_REGEX = /^.{6,}$/
+// export const VALIDATE_FULL_NAME_REGEX = /^[a-zA-ZÀ-ỹ ]+$/
+
+export const VALIDATE_FULL_NAME_REGEX = /^.{6,}$/

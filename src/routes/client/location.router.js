@@ -5,6 +5,8 @@ import {Router} from 'express'
 const locationsRouter = Router()
 
 // [GET] : /posts?
-locationsRouter.get('/', asyncHandler(locationController.readRoot))
+locationsRouter.get('/vietnameses-provinces', asyncHandler(locationController.readRoot))
+
+locationsRouter.get('/vietnamese-city', asyncHandler(locationController.cityVN))
 
 export default locationsRouter

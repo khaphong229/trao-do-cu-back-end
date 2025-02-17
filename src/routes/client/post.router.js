@@ -22,8 +22,15 @@ postRouter.post(
     '/',
     asyncHandler(requireAuthentication),
     asyncHandler(validate(postRequest.createPostValidate)),
-    asyncHandler(postController.createPost),
-    (req, res) => res.jsonify('post')
+    asyncHandler(postController.createPost)
+)
+
+// [POST] : /posts
+postRouter.post(
+    '/repost',
+    asyncHandler(requireAuthentication),
+    // asyncHandler(validate(postRequest.createPostValidate)),
+    asyncHandler(postController.createRePost)
 )
 
 export default postRouter

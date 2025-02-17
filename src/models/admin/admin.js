@@ -13,13 +13,33 @@ export const infoGeneralUser = {
         unique: true,
         required: true,
     },
+    // password: {
+    //     type: String,
+    //     required: true,
+    //     set(password) {
+    //         const salt = bcrypt.genSaltSync(10)
+    //         return bcrypt.hashSync(password, salt)
+    //     },
+    // },
     password: {
         type: String,
-        required: true,
+        required: function () {
+            // Chỉ bắt buộc password nếu không phải tài khoản Google
+            return !this.isGoogle
+        },
         set(password) {
+            if (!password) return null
             const salt = bcrypt.genSaltSync(10)
             return bcrypt.hashSync(password, salt)
         },
+    },
+    googleId: {
+        type: String,
+        required: false, // Chỉ dùng cho tài khoản Google
+    },
+    isGoogle: {
+        type: Boolean,
+        default: false, // Mặc định là tài khoản local
     },
     phone: {
         type: String,
@@ -46,7 +66,14 @@ const Admin = createModel('Admin', 'admins', infoGeneralUser, {
         },
     },
     methods: {
+        // verifyPassword(password) {
+        //     return bcrypt.compareSync(password, this.password)
+        // },
         verifyPassword(password) {
+            if (this.isGoogle) {
+                // Nếu tài khoản được đăng nhập qua Google, không thể xác thực bằng mật khẩu
+                throw new Error('Cannot verify password for Google account')
+            }
             return bcrypt.compareSync(password, this.password)
         },
     },

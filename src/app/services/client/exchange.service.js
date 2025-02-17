@@ -1,3 +1,4 @@
+import Notification from '@/models/client/notification'
 import Post from '@/models/client/post'
 import RequestsExchange from '@/models/client/requests_exchange'
 import {abort} from '@/utils/helpers'
@@ -14,17 +15,20 @@ export async function create(requestBody) {
         contact_phone,
         contact_address,
     } = requestBody
-    // Kiểm tra bài post tồn tại và đúng trạng thái
-    const postIsValid = await Post.findOne({_id: requestBody.post_id, type: 'exchange'})
+
+    // 1. Kiểm tra bài post tồn tại và đúng trạng thái (loại bài là 'exchange')
+    const postIsValid = await Post.findOne({_id: post_id, type: 'exchange'})
     if (!postIsValid) {
         return abort(404, 'Bài post không tồn tại hoặc đây là bài cho nhận.')
     }
-    // Kiểm tra xem người dùng đã gửi yêu cầu cho bài post này chưa
+
+    // 2. Kiểm tra xem người dùng đã gửi yêu cầu cho bài post này chưa
     const existingRequest = await RequestsExchange.findOne({
         post_id,
         user_req_id,
     })
-    // Kiểm tra xem người yêu cầu có trùng với người đăng bài hay không
+
+    // 3. Kiểm tra xem người yêu cầu có trùng với người đăng bài hay không
     if (postIsValid.user_id.toString() === user_req_id.toString()) {
         return abort(400, 'Bạn không thể gửi yêu cầu cho chính bài post của mình.')
     }
@@ -33,7 +37,7 @@ export async function create(requestBody) {
         return abort(400, 'Bạn đã gửi yêu cầu cho bài post này')
     }
 
-    // Tạo yêu cầu trao đổi mới
+    // 4. Tạo yêu cầu trao đổi mới (RequestsExchange)
     const newExchangeRequest = new RequestsExchange({
         post_id,
         user_req_id,
@@ -43,29 +47,54 @@ export async function create(requestBody) {
         contact_phone,
         contact_social_media,
         contact_address,
-        status: 'pending',
-        requestAt: new Date(),
+        status: 'pending', // Trạng thái ban đầu là pending
+        requestAt: new Date(), // Thời gian gửi yêu cầu
     })
 
-    // Lưu yêu cầu
+    // Lưu yêu cầu trao đổi
     await newExchangeRequest.save()
 
+    // 5. Tạo thông báo mới (Notification)
+    //    - Người nhận thông báo: Chủ bài đăng (postIsValid.user_id)
+    //    - Loại thông báo: 'request_exchange'
+    //    - post_id: ID của bài đăng liên quan
+    //    - source_id: _id của yêu cầu trao đổi vừa tạo
+    //    - isRead: Mặc định là false => Vì user chưa đọc
+    const newNotification = new Notification({
+        user_id: postIsValid.user_id, // Chủ bài đăng nhận thông báo
+        type: 'request_exchange', // Loại thông báo dành cho yêu cầu trao đổi
+        post_id: post_id, // Liên kết với bài đăng
+        source_id: newExchangeRequest._id, // Liên kết với bản ghi yêu cầu trao đổi
+        isRead: false,
+        source_model: 'RequestsExchange',
+        created_at: new Date(),
+        updated_at: new Date(),
+    })
+
+    // Lưu notification
+    await newNotification.save()
+
+    // 6. Trả về yêu cầu trao đổi mới được tạo
     return newExchangeRequest
 }
 
 export const filter = async (qs, limit, current, req) => {
-    // check nếu là mình thì bỏ <thiếu>
+    // Kiểm tra user hiện tại
     const userId = req.currentUser._id
-    // Tìm các bài post của user của người dăng
+
+    // Tìm các bài post của user hiện tại với type 'exchange'
     const userPosts = await Post.find({
         user_id: userId,
         type: 'exchange',
     })
-    // console.log('userPosts : ', userPosts)
 
     let {filter} = aqp(qs)
+    const {statusPotsId} = filter // Lấy statusPotsId (đại diện cho status của post_id)
+    delete filter.statusPotsId // Xóa statusPotsId khỏi filter chính để xử lý riêng
     delete filter.current
     delete filter.pageSize
+    filter.isDeleted = false
+
     let {q} = filter
     delete filter.q
     if (q) {
@@ -73,41 +102,54 @@ export const filter = async (qs, limit, current, req) => {
         filter = {
             ...(q && {$or: [{title: q}, {description: q}]}),
         }
+        filter.isDeleted = false
     }
+
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    // console.log({sort, current, limit, q, filter})
-    // console.log(userPosts.map((post) => post._id))
-    // => tạo ra mảng mới chỉ lưu id thôi.
-    // Lấy các yêu cầu nhận liên quan đến các bài post đó
-    const receiveRequests = await RequestsExchange.find({
+
+    // Lấy các yêu cầu liên quan đến các bài post
+    const exchangeRequests = await RequestsExchange.find({
         post_id: {$in: userPosts.map((post) => post._id)},
         ...filter,
     })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .populate('post_id')
+        .populate({
+            path: 'post_id',
+            match: statusPotsId ? {status: statusPotsId} : {}, // Lọc thêm theo status nếu statusPotsId tồn tại
+        })
         .populate('user_req_id')
-    // console.log('receiveRequests : ', receiveRequests)
 
-    const total = await RequestsExchange.countDocuments(filter)
-    return {total, current, limit, receiveRequests}
+    // Lọc các kết quả không có post_id sau khi populate
+    const filteredExchangeRequests = exchangeRequests.filter((req) => req.post_id)
+
+    // Đếm số tài liệu liên quan sau khi áp dụng điều kiện
+    const total = await RequestsExchange.find({
+        post_id: {$in: userPosts.map((post) => post._id)}, // Lọc theo các bài viết của user
+        ...filter,
+    })
+        .populate({
+            path: 'post_id',
+            match: statusPotsId ? {status: statusPotsId} : {}, // Áp dụng bộ lọc statusPotsId
+        })
+        .then((docs) => docs.filter((doc) => doc.post_id).length) // Đếm các tài liệu có post_id hợp lệ
+
+    return {total: filteredExchangeRequests, current, limit, exchangeRequests: filteredExchangeRequests}
 }
 
 export const filterMe = async (qs, limit, current, req) => {
     const userId = req.currentUser._id
 
-    // Basic query parameter handling
     let {filter} = aqp(qs)
     delete filter.current
     delete filter.pageSize
     let {q} = filter
     delete filter.q
 
-    // Handle search query
     if (q) {
         q = q ? {$regex: q, $options: 'i'} : null
         filter = {
@@ -115,22 +157,25 @@ export const filterMe = async (qs, limit, current, req) => {
         }
     }
 
-    // Handle sorting and pagination
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
 
-    // Find requests where the user is the requester
     const requests = await RequestsExchange.find({
-        user_req_id: userId, // User is the requester
+        user_req_id: userId,
         ...filter,
     })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .populate('post_id') // Populate post details
-        .populate('user_req_id') // Populate post owner details
+        .populate({
+            path: 'post_id',
+            populate: {
+                path: 'user_id',
+            },
+        })
+        .populate('user_req_id')
 
     const total = await RequestsExchange.countDocuments({
         user_req_id: userId,
@@ -146,16 +191,10 @@ export const filterMe = async (qs, limit, current, req) => {
 }
 
 export const updateStatus = async (req) => {
-    // Trước khi phê duyệt nên đối status của bài Post
+    // Lấy _id và status từ body của request
     const {_id, status} = req.body
 
-    const postOld = await RequestsExchange.findOne({_id: _id}).lean()
-    if (!postOld) {
-        return abort(400, 'Không tìm thấy bài viết này')
-    } else {
-        await Post.updateMany({_id: postOld.post_id._id}, {status: 'inactive'})
-    }
-
+    // Kiểm tra các trường bắt buộc
     if (!_id) {
         return abort(400, 'ID không được để trống')
     }
@@ -163,13 +202,50 @@ export const updateStatus = async (req) => {
         return abort(400, 'Status không được để trống')
     }
 
-    const request = await RequestsExchange.updateOne({_id: _id}, {status: status})
+    // Tìm document yêu cầu trao đổi theo _id
+    const requestDoc = await RequestsExchange.findOne({_id: _id}).lean()
+    if (!requestDoc) {
+        return abort(400, 'Không tìm thấy yêu cầu trao đổi')
+    }
 
-    if (!request) {
+    // Nếu trạng thái được cập nhật thành "approved",
+    // cập nhật trạng thái của bài post liên quan (ví dụ: set thành "inactive")
+    if (status === 'accepted') {
+        // Lưu ý: post_id có thể là ObjectId trực tiếp hoặc đã populate.
+        // Ở đây chúng ta giả định post_id là ObjectId.
+        await Post.updateOne({_id: requestDoc.post_id}, {status: 'inactive'})
+    }
+
+    // Cập nhật trạng thái của yêu cầu trao đổi
+    const updateResult = await RequestsExchange.updateOne({_id: _id}, {status: status})
+    if (!updateResult) {
         return abort(400, 'Không tìm thấy document')
     }
 
-    return request
+    // Nếu trạng thái được cập nhật là "accepted", tạo mới thông báo cho người gửi yêu cầu.
+    // Ở giai đoạn này, thông báo sẽ được gửi đến người đi xin (user_req_id)
+    if (status === 'accepted') {
+        const newNotification = new Notification({
+            // Người nhận thông báo là người gửi yêu cầu (user_req_id)
+            user_id: requestDoc.user_req_id,
+            // Loại thông báo cho việc duyệt yêu cầu trao đổi
+            type: 'approve_exchange',
+            source_model: 'RequestsExchange',
+            // Liên kết thông báo với bài post liên quan
+            post_id: requestDoc.post_id,
+            // Lưu trữ ID của yêu cầu trao đổi đã được duyệt
+            source_id: _id,
+            // Mặc định thông báo chưa được đọc
+            isRead: false,
+            // Thiết lập thời gian tạo và cập nhật
+            created_at: new Date(),
+            updated_at: new Date(),
+        })
+        await newNotification.save()
+    }
+
+    // Trả về kết quả cập nhật (có thể là một object chứa thông tin về số lượng document được cập nhật)
+    return updateResult
 }
 
 // Xóa bản ghi

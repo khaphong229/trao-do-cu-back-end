@@ -27,6 +27,7 @@ export const createReceiveRequestValidate = Joi.object({
         .trim()
         .pattern(VALIDATE_PHONE_REGEX)
         .optional()
+        .allow('')
         .label('Số điện thoại liên hệ'),
 
     contact_social_media: Joi.object({
@@ -36,7 +37,7 @@ export const createReceiveRequestValidate = Joi.object({
     })
         .optional()
         .allow('')
-        .label('Liên hệ mạng xã hội'),
+        .label('Danh sách liên kết mạng xã hội'),
 
     contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
 
@@ -48,3 +49,20 @@ export const createReceiveRequestValidate = Joi.object({
         .default('pending')
         .label('Trạng thái yêu cầu'),
 })
+    .custom((obj, helpers) => {
+        const hasPhone = !!obj.contact_phone
+        const hasSocialMedia =
+            obj.contact_social_media &&
+            (obj.contact_social_media.facebook ||
+                obj.contact_social_media.zalo ||
+                obj.contact_social_media.instagram)
+
+        if (!hasPhone && !hasSocialMedia) {
+            return helpers.error('custom.contact')
+        }
+
+        return obj
+    })
+    .messages({
+        'custom.contact': 'Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội',
+    })

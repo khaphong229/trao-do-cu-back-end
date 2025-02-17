@@ -16,7 +16,7 @@ import errorHandler from './handlers/error.handler'
 
 import routeAdmin from './routes/admin'
 import routeClient from './routes/client'
-
+require('./passport')
 function createApp() {
     // Init app
     const app = express()
