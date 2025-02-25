@@ -5,6 +5,7 @@ import locationsRouter from './location.router'
 import requestGiftRouter from './requests_gift.router'
 import requestExchangeRouter from './requests_exchange.router'
 import notificationRouter from './notification.router'
+import userInterestRouter from './user_interest.router'
 
 function routeClient(app) {
     app.use('/auth', authRouter)
@@ -20,6 +21,8 @@ function routeClient(app) {
     app.use('/request_exchange', requestExchangeRouter)
 
     app.use('/notifications', notificationRouter)
+
+    app.use('/user-interests', userInterestRouter)
 }
 
 export default routeClient
