@@ -34,6 +34,9 @@ export async function saveBatchInteractions(userId, interactions) {
 export async function getTopCategoriesForUser(userId, days = 1) {
     const startDate = startOfDay(subDays(new Date(), days - 1))
     
+    // Log để kiểm tra
+    console.log('Getting interactions from:', startDate)
+    
     const topCategories = await UserInteraction.aggregate([
         {
             $match: {
@@ -41,18 +44,18 @@ export async function getTopCategoriesForUser(userId, days = 1) {
                 date: { $gte: startDate }
             }
         },
-        { $unwind: '$interactions' }, // tách từng phần tử trong mảng thành bản ghi riêng
+        { $unwind: '$interactions' },
         {
-            $group: { // giống group trong sql
+            $group: {
                 _id: '$interactions.category',
                 interactionCount: { $sum: 1 },
                 lastInteraction: { $max: '$interactions.time_event' }
             }
         },
         {
-            $lookup: { // lookup luôn return về mảng
+            $lookup: {
                 from: 'categories',
-                localField: '_id', 
+                localField: '_id',
                 foreignField: '_id',
                 as: 'category'
             }
@@ -60,16 +63,19 @@ export async function getTopCategoriesForUser(userId, days = 1) {
         { $unwind: '$category' },
         {
             $project: {
-                _id: 1,
+                _id: '$category._id',
+                name: '$category.name',
+                description: '$category.description',
                 interactionCount: 1,
-                lastInteraction: 1,
-                'category.name': 1,
-                'category.description': 1
+                lastInteraction: 1
             }
         },
         { $sort: { interactionCount: -1, lastInteraction: -1 } },
         { $limit: 10 }
     ])
 
+    // Log kết quả
+    console.log('Found top categories:', topCategories.length)
+    
     return topCategories
 } 
