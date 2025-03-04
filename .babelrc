@@ -19,6 +19,7 @@
         }
       }
     ]
+    // ["transform-inline-environment-variables"]
   ],
   "ignore": ["./build", "./node_modules"],
   "comments": false,
