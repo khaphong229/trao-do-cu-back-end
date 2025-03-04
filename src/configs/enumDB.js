@@ -4,3 +4,9 @@ export const enumTypeNotification = [
     'approve_receive',
     'approve_exchange',
 ]
+export const enumTypeEvent = [
+    'click',
+    'view',
+    'search',
+]
+

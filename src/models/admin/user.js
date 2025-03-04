@@ -14,10 +14,12 @@ const infoFulledUser = {
     gender: {
         type: String,
     },
-    category_care: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Category',
-    },
+    category_care: [
+        {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Category',
+        },
+    ],
     social_media: {
         type: [String],
     },
@@ -27,6 +29,10 @@ const infoFulledUser = {
     },
     last_login: {
         type: Date,
+    },
+    isSurveyed: {
+        type: Boolean,
+        default: false,
     },
 }
 

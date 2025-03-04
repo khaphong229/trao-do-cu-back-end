@@ -9,7 +9,17 @@ import validate from '@/app/middleware/common/validate'
 const postRouter = Router()
 
 // [GET] : /posts?
-postRouter.get('/', asyncHandler(postController.readRoot))
+postRouter.get('/', 
+    asyncHandler(async (req, res, next) => {
+        try {
+            await requireAuthentication(req, res, next)
+        } catch (error) {
+            // Nếu không có token hoặc token invalid, vẫn cho phép request đi tiếp
+            next()
+        }
+    }),
+    asyncHandler(postController.readRoot)
+)
 
 // [GET] : /posts/me
 postRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(postController.readRootMe))
