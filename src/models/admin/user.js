@@ -30,6 +30,10 @@ const infoFulledUser = {
     last_login: {
         type: Date,
     },
+    isSurveyed: {
+        type: Boolean,
+        default: false,
+    },
 }
 
 const User = createModel('User', 'users', infoFulledUser, {
