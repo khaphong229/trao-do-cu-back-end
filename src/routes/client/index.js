@@ -29,6 +29,8 @@ function routeClient(app) {
     app.use('/user-interactions', userInteractionRouter)
 
     app.use('/surveys', surveyRouter)
+
+    app.use('/surveys', surveyRouter)
 }
 
 export default routeClient
