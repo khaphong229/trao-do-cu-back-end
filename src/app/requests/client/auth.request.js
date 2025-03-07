@@ -150,7 +150,12 @@ export const updateProfile = Joi.object({
     //             return !user ? value : helpers.error('any.exists')
     //         })
     // ),
-    phone: Joi.string().pattern(VALIDATE_PHONE_REGEX).allow('', null).label('Số điện thoại'),
+    phone: Joi.string()
+        .trim()
+        .pattern(VALIDATE_PHONE_REGEX)
+        .allow('')
+        .optional()
+        .label('Số điện thoại liên hệ'),
     avatar: Joi.string()
         .allow('') // cho phép giá trị rỗng
         .label('Ảnh đại diện'),
@@ -158,15 +163,25 @@ export const updateProfile = Joi.object({
     birth_date: Joi.date().iso().allow(null).label('Ngày sinh nhật'),
     gender: Joi.string().allow('').label('Giới tính'),
     category_care: Joi.array().items(Joi.string()).allow('').label('Các loại đồ quan tâm'),
-    social_media: Joi.array().items(Joi.string()).allow('').label('Danh sách liên kết mạng xã hội'),
-    successful_exchanges: Joi.number().label('Số lần trao đổi thành công'),
-    last_login: Joi.date().iso().allow(null).label('Lần đăng nhập cuối cùng'),
+    social_media: Joi.object({
+        facebook: Joi.string().uri().allow('').optional(),
+        zalo: Joi.string().allow('').optional(),
+        instagram: Joi.string().uri().allow('').optional()
+    })
+        .optional()
+        .default({})
+        .label('Danh sách liên kết mạng xã hội'),
+    successful_exchanges: Joi.number().optional().label('Số lần trao đổi thành công'),
+    last_login: Joi.date().iso().allow(null).optional().label('Lần đăng nhập cuối cùng'),
 })
     .custom((obj, helpers) => {
-        // Basic check for either phone or social_media
-        if (!obj.phone && (!obj.social_media || !obj.social_media.length)) {
-            return helpers.error('custom.contact')
+        const hasPhone = obj.phone && obj.phone.trim().length > 0
+        const hasFacebook = obj.social_media?.facebook && obj.social_media.facebook.trim().length > 0
+    
+        if (!hasPhone && !hasFacebook) {
+            return helpers.message('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
         }
+    
         return obj
     })
     .messages({
