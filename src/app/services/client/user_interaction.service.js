@@ -5,6 +5,14 @@ import mongoose from 'mongoose'
 export async function saveBatchInteractions(userId, interactions) {
     const today = startOfDay(new Date())
     
+    // Chuẩn hóa dữ liệu interactions
+    const normalizedInteractions = interactions.map(interaction => ({
+        ...interaction,
+        // Nếu category là object, lấy _id, nếu không giữ nguyên
+        category: typeof interaction.category === 'object' ? interaction.category._id : interaction.category,
+        time_event: interaction.time_event || new Date()
+    }))
+    
     // Tìm document của user trong ngày hôm nay
     let userInteraction = await UserInteraction.findOne({
         user_id: userId,
@@ -18,12 +26,12 @@ export async function saveBatchInteractions(userId, interactions) {
         // Nếu chưa có, tạo mới
         userInteraction = new UserInteraction({
             user_id: userId,
-            interactions: interactions,
+            interactions: normalizedInteractions,
             date: today
         })
     } else {
         // Nếu đã có, thêm interactions vào mảng hiện có
-        userInteraction.interactions.push(...interactions)
+        userInteraction.interactions.push(...normalizedInteractions)
         userInteraction.updated_at = new Date()
     }
 
@@ -31,7 +39,7 @@ export async function saveBatchInteractions(userId, interactions) {
     return userInteraction
 }
 
-export async function getTopCategoriesForUser(userId, days = 1) {
+export async function getTopCategoriesForUser(userId, days = 2) {
     const startDate = startOfDay(subDays(new Date(), days - 1))
     
     // Log để kiểm tra

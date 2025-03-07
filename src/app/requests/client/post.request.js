@@ -21,9 +21,12 @@ export const createPostValidate = Joi.object({
     image_url: Joi.array()
         .items(Joi.string())
         .max(9) // Tối đa 9 ảnh
-        // .optional()
         .required()
-        .default([])
+        .min(1) // Yêu cầu ít nhất 1 ảnh
+        .messages({
+            'array.min': 'Vui lòng tải lên ít nhất 1 ảnh',
+            'array.max': 'Chỉ được phép tải lên tối đa 9 ảnh'
+        })
         .label('Đường dẫn ảnh'),
 
     category_id: Joi.string()

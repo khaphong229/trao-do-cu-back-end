@@ -9,6 +9,7 @@ import {TOKEN_TYPE} from '@/configs'
 import * as userInteractionService from './user_interaction.service'
 import UserInterest from '@/models/client/user_interest'
 import { User } from '@/models'
+import mongoose from 'mongoose'
 
 export async function create(requestBody, req) {
     const user_id = req.currentUser._id
@@ -57,15 +58,13 @@ export async function createRePostSer(requestBody, req) {
     return repostedPost
 }
 
-export const filter = async (qs, limit, current, req) => {
+export const filterCategory = async (qs, limit, current, req) => {
     let {filter} = aqp(qs)
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
     let {q} = filter
     delete filter.q
-
-    // Xử lý query search nếu có
     if (q) {
         q = q ? {$regex: q, $options: 'i'} : null
         filter = {
@@ -73,90 +72,16 @@ export const filter = async (qs, limit, current, req) => {
         }
         filter.isDeleted = false
     }
-
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
+    const data = await Post.find(filter)
+        .populate('user_id')
+        .skip((current - 1) * limit)
+        .limit(limit)
+        .sort(sort)
 
-    let data = []
-    const userId = req.currentUser?._id
-
-    // Base query cho tất cả bài viết
-    const baseQuery = {
-        ...filter,
-        status: 'active',
-        isDeleted: false
-    }
-
-    if (userId) {
-        // 1. Lấy thông tin user và tính tuổi tài khoản
-        const user = await User.findById(userId)
-        const accountAge = Math.floor((new Date() - user.created_at) / (1000 * 60 * 60 * 24)) // Số ngày
-
-        // 2. Lấy danh mục quan tâm từ lúc đăng ký
-        const userInterests = await UserInterest.findOne({ user_id: userId })
-        let registeredCategories = []
-        if (userInterests) {
-            registeredCategories = userInterests.interests.map(interest => interest.category_id)
-        }
-
-        // 3. Xác định nguồn dữ liệu category dựa vào tuổi tài khoản
-        let categoryIds = []
-        if (accountAge < 3) {
-            // User mới: chỉ dùng danh mục đăng ký
-            categoryIds = registeredCategories
-        } else {
-            // User cũ: kết hợp cả hai nguồn
-            const interactionCategories = await userInteractionService.getTopCategoriesForUser(userId, 2)
-            const interactionCategoryIds = interactionCategories.map(cat => cat._id)
-            
-            // Kết hợp và loại bỏ trùng lặp
-            categoryIds = [...new Set([...registeredCategories, ...interactionCategoryIds])]
-        }
-
-        if (categoryIds.length > 0) {
-            // 4. Query với priority
-            const allPosts = await Post.aggregate([
-                { $match: baseQuery },
-                {
-                    $addFields: {
-                        isPriority: {
-                            $cond: {
-                                if: { $in: ['$category_id', categoryIds] },
-                                then: 1,
-                                else: 0
-                            }
-                        }
-                    }
-                },
-                { $sort: { 
-                    isPriority: -1,
-                    ...sort
-                }},
-                { $skip: (current - 1) * limit },
-                { $limit: limit }
-            ])
-
-            // 5. Populate các thông tin cần thiết
-            data = await Post.populate(allPosts, [
-                { path: 'user_id' },
-                { path: 'category_id' }
-            ])
-        }
-    }
-
-    // Nếu không có user đăng nhập hoặc không có category quan tâm
-    if (data.length === 0) {
-        data = await Post.find(baseQuery)
-            .populate('user_id')
-            .populate('category_id')
-            .skip((current - 1) * limit)
-            .limit(limit)
-            .sort(sort)
-    }
-
-    // Xử lý thêm thông tin isRequested
     const processedData = req.headers.authorization
         ? await Promise.all(
             data.map(async (post) => {
@@ -172,8 +97,155 @@ export const filter = async (qs, limit, current, req) => {
                         })
 
                         return {
-                            ...post,  // Bỏ .toObject() vì post đã là plain object
+                            ...post.toObject(),
                             isRequested: !!request,
+                        }
+                    }
+                }
+            })
+        )
+        : data
+
+    const total = await Post.countDocuments(filter)
+    return {total, current, limit, data: processedData}
+}
+
+export const filter = async (qs, limit, current, req) => {
+    let {filter} = aqp(qs)
+    delete filter.current
+    delete filter.pageSize
+    filter.isDeleted = false
+    let {q} = filter
+    delete filter.q
+
+    if (q) {
+        q = q ? {$regex: q, $options: 'i'} : null
+        filter = {
+            ...(q && {$or: [{title: q}, {description: q}]}),
+        }
+        filter.isDeleted = false
+    }
+
+    let {sort} = aqp(qs)
+    if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
+    if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 16
+    if (!sort) sort = {created_at: -1}
+
+    const baseQuery = {
+        ...filter,
+        status: 'active',
+        isDeleted: false
+    }
+
+    let data = []
+    const userId = req.currentUser?._id
+
+    // Kiểm tra user đã đăng nhập và đã khảo sát chưa
+    if (userId) {
+        const user = await User.findById(userId)
+        if (user.isSurveyed) {
+            // Lấy danh mục quan tâm
+            const accountAge = Math.floor((new Date() - user.created_at) / (1000 * 60 * 60 * 24))
+            const userInterests = await UserInterest.findOne({ user_id: userId })
+            let categoryIds = []
+            
+            if (accountAge < 3) {
+                // User mới: chỉ dùng danh mục từ khảo sát
+                if (userInterests) {
+                    categoryIds = userInterests.interests.map(interest => 
+                        new mongoose.Types.ObjectId(interest.category_id)
+                    )
+                }
+            } else {
+                // User cũ: kết hợp cả tương tác
+                let registeredCategories = []
+                if (userInterests) {
+                    registeredCategories = userInterests.interests.map(interest => 
+                        new mongoose.Types.ObjectId(interest.category_id)
+                    )
+                }
+                const interactionCategories = await userInteractionService.getTopCategoriesForUser(userId, 2)
+                const interactionCategoryIds = interactionCategories.map(cat => 
+                    new mongoose.Types.ObjectId(cat._id)
+                )
+                categoryIds = [...new Set([...registeredCategories, ...interactionCategoryIds])]
+            }
+
+            // Query với ưu tiên nhưng không lọc bỏ bài viết nào
+            data = await Post.find(baseQuery)
+                .lean()
+                .then(posts => {
+                    // Đánh dấu bài viết thuộc category ưu tiên
+                    return posts.map(post => ({
+                        ...post,
+                        isPriority: categoryIds.some(catId => 
+                            catId.toString() === post.category_id.toString()
+                        ) ? 1 : 0
+                    }))
+                })
+                .then(posts => {
+                    // Sắp xếp: ưu tiên trước, sau đó theo sort condition
+                    return posts.sort((a, b) => {
+                        if (a.isPriority !== b.isPriority) {
+                            return b.isPriority - a.isPriority
+                        }
+                        // Áp dụng sort condition
+                        const sortField = Object.keys(sort)[0]
+                        const sortOrder = sort[sortField]
+                        if (a[sortField] < b[sortField]) return sortOrder === 1 ? -1 : 1
+                        if (a[sortField] > b[sortField]) return sortOrder === 1 ? 1 : -1
+                        return 0
+                    })
+                })
+                .then(posts => {
+                    // Áp dụng phân trang
+                    return posts.slice((current - 1) * limit, current * limit)
+                })
+
+            // Populate user và category data
+            data = await Post.populate(data, [
+                { path: 'user_id', select: '_id name email avatar phone address status' },
+                { path: 'category_id', select: '_id name' }
+            ])
+        } else {
+            // User chưa khảo sát - query đơn giản
+            data = await Post.find(baseQuery)
+                .populate('user_id', '_id name email avatar phone address status')
+                .populate('category_id', '_id name')
+                .skip((current - 1) * limit)
+                .limit(limit)
+                .sort(sort)
+                .lean()
+        }
+    } else {
+        // User chưa đăng nhập - query đơn giản
+        data = await Post.find(baseQuery)
+            .populate('user_id', '_id name email avatar phone address status')
+            .populate('category_id', '_id name')
+            .skip((current - 1) * limit)
+            .limit(limit)
+            .sort(sort)
+            .lean()
+    }
+
+    // Xử lý thêm thông tin isRequested
+    const processedData = req.headers.authorization
+        ? await Promise.all(
+            data.map(async (post) => {
+                const token = getToken(req.headers)
+                if (token) {
+                    const allowedToken = _.isUndefined(await tokenBlocklist.get(token))
+                    if (allowedToken) {
+                        const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
+                        const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+                        const request = await requestModel.findOne({
+                            post_id: post._id,
+                            user_req_id: user_id,
+                        }).lean()
+
+                        return {
+                            ...post,
+                            isRequested: !!request
                         }
                     }
                 }
@@ -203,7 +275,7 @@ export const filterMe = async (qs, limit, current, req) => {
     }
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
-    if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
+    if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 16
     if (!sort) sort = {created_at: -1}
     console.log({sort, current, limit, q, filter})
 

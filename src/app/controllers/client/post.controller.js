@@ -18,6 +18,14 @@ export const readRoot = async (req, res) => {
     res.jsonify(result)
 }
 
+// [GET] : /post-category   ?
+export const readRootCategory = async (req, res) => {
+    const limit = parseInt(req.query.pageSize)
+    const current = parseInt(req.query.current)
+    const result = await postService.filterCategory(req.query, limit, current, req)
+    res.jsonify(result)
+}
+
 export const readRootMe = async (req, res) => {
     const limit = parseInt(req.query.pageSize)
     const current = parseInt(req.query.current)
