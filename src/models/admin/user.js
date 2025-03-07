@@ -21,7 +21,16 @@ const infoFulledUser = {
         },
     ],
     social_media: {
-        type: [String],
+        type: {
+            facebook: { type: String, default: '' },
+            zalo: { type: String, default: '' },
+            instagram: { type: String, default: '' }
+        },
+        default: {
+            facebook: '',
+            zalo: '',
+            instagram: ''
+        }
     },
     successful_exchanges: {
         type: Number,

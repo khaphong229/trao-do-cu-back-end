@@ -34,26 +34,31 @@ export const createExchangeRequestValidate = Joi.object({
 
     image_url: Joi.array()
         .items(Joi.string())
-        .max(10) // Tối đa 5 ảnh
-        // .optional()
+        .max(10) // Tối đa 10 ảnh
         .required()
-        .default([])
+        .min(1) // Yêu cầu ít nhất 1 ảnh
+        .messages({
+            'array.min': 'Vui lòng tải lên ít nhất 1 ảnh',
+            'array.max': 'Chỉ được phép tải lên tối đa 10 ảnh',
+            'array.base': 'Vui lòng tải lên ảnh',
+            'any.required': 'Vui lòng tải lên ảnh'
+        })
         .label('Đường dẫn ảnh'),
 
     contact_phone: Joi.string()
         .trim()
         .pattern(VALIDATE_PHONE_REGEX)
+        .allow('')
         .optional()
         .label('Số điện thoại liên hệ'),
 
     contact_social_media: Joi.object({
-        facebook: Joi.string().uri().optional(),
-        zalo: Joi.string().optional(),
-        instagram: Joi.string().uri().optional(),
+        facebook: Joi.string().uri().allow('').optional(),
+        zalo: Joi.string().allow('').optional(),
+        instagram: Joi.string().uri().allow('').optional(),
     })
         .optional()
-        .allow('')
-        .label('Danh sách liên kết mạng xã hội'),
+        .default({}),
 
     contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
 
@@ -64,19 +69,12 @@ export const createExchangeRequestValidate = Joi.object({
         .label('Trạng thái yêu cầu'),
 })
     .custom((obj, helpers) => {
-        const hasPhone = !!obj.contact_phone
-        const hasSocialMedia =
-            obj.contact_social_media &&
-            (obj.contact_social_media.facebook ||
-                obj.contact_social_media.zalo ||
-                obj.contact_social_media.instagram)
-
-        if (!hasPhone && !hasSocialMedia) {
-            return helpers.error('custom.contact')
+        const hasPhone = obj.contact_phone && obj.contact_phone.trim().length > 0
+        const hasFacebook = obj.contact_social_media?.facebook && obj.contact_social_media.facebook.trim().length > 0
+        
+        if (!hasPhone && !hasFacebook) {
+            return helpers.message('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
         }
-
+        
         return obj
-    })
-    .messages({
-        'custom.contact': 'Bạn phải cung cấp ít nhất một trong hai thông tin: Số điện thoại hoặc Mạng xã hội',
     })
