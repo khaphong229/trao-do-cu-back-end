@@ -30,27 +30,30 @@ export function jsonify(data, message) {
 }
 
 export function sendMail(to, subject, template, data, mailOptions) {
-    ejs.renderFile(path.join(VIEW_DIR, template + '.ejs'), {...this.locals, ...data}, function (err, html) {
-        if (err) throw err
-        mailTransporter.sendMail(
-            {
-                ...mailOptions,
-                from: {
-                    address: MAIL_FROM_ADDRESS,
-                    name: MAIL_FROM_NAME,
+    //1. Render template email
+    ejs.renderFile(path.join(VIEW_DIR, template + '.ejs') // Đường dẫn đến file template email
+        , {...this.locals, ...data} // Dữ liệu truyền vào template
+        , function (err, html) { // Callback function
+            if (err) throw err
+            mailTransporter.sendMail(
+                {
+                    ...mailOptions, // Các tùy chọn email 
+                    from: {
+                        address: MAIL_FROM_ADDRESS, // Email người gửi
+                        name: MAIL_FROM_NAME, // Tên người gửi
+                    },
+                    to, // Email người nhận
+                    subject, // Tiêu đề email
+                    html, // Nội dung email
                 },
-                to,
-                subject,
-                html,
-            },
-            function (err) {
-                if (!err) return
-                const detail = normalizeError(err)
-                logger.error({
-                    message: 'Error sending email to ' + to,
-                    detail,
-                })
-            }
-        )
-    })
+                function (err) {
+                    if (!err) return
+                    const detail = normalizeError(err)
+                    logger.error({
+                        message: 'Error sending email to ' + to,
+                        detail,
+                    })
+                }
+            )
+        })
 }
