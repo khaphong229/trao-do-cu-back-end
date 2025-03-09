@@ -40,6 +40,21 @@ const Post = createModel(
             type: [String],
             default: [],
         },
+        contact_phone: {
+            type: String,
+        },
+        contact_social_media: {
+            type: {
+                facebook: { type: String, default: '' },
+                zalo: { type: String, default: '' },
+                instagram: { type: String, default: '' }
+            },
+            default: {
+                facebook: '',
+                zalo: '',
+                instagram: ''
+            }
+        },
         category_id: {
             type: mongoose.Schema.Types.ObjectId,
             ref: 'Category',
