@@ -17,6 +17,7 @@ export function generateToken(data, type, expiresIn, secretKey) {
 }
 
 export function verifyToken(token, validType, secretKey) {
+    //1. ... validate params ...
     assert(_.isString(token) && !_.isEmpty(token), new TypeError('"token" is required and must be a string.'))
     assert(_.isString(validType) && !_.isEmpty(validType), new TypeError('"validType" is required and must be a string.'))
     assert(
@@ -24,6 +25,7 @@ export function verifyToken(token, validType, secretKey) {
         new TypeError('"secretKey" must be a string and cannot be empty.')
     )
 
+    //2. Nếu không truyền secretKey, sẽ dùng SECRET_KEY từ configs
     const {type, data} = jwt.verify(token, secretKey ?? SECRET_KEY)
     if (type !== validType) {
         throw new JsonWebTokenError()

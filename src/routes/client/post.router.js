@@ -21,6 +21,9 @@ postRouter.get('/',
     asyncHandler(postController.readRoot)
 )
 
+// [GET] : /posts/category/:category_id?
+postRouter.get('/category', asyncHandler(postController.readRootCategory))
+
 // [GET] : /posts/me
 postRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(postController.readRootMe))
 

@@ -1,5 +1,5 @@
 import Joi from 'joi'
-import {category_id_default, MAX_STRING_SIZE} from '@/configs'
+import {category_id_default, MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from '@/configs'
 import mongoose from 'mongoose'
 
 export const createPostValidate = Joi.object({
@@ -21,10 +21,28 @@ export const createPostValidate = Joi.object({
     image_url: Joi.array()
         .items(Joi.string())
         .max(9) // Tối đa 9 ảnh
-        // .optional()
         .required()
-        .default([])
+        .min(1) // Yêu cầu ít nhất 1 ảnh
+        .messages({
+            'array.min': 'Vui lòng tải lên ít nhất 1 ảnh',
+            'array.max': 'Chỉ được phép tải lên tối đa 9 ảnh'
+        })
         .label('Đường dẫn ảnh'),
+
+    contact_phone: Joi.string()
+        .trim()
+        .pattern(VALIDATE_PHONE_REGEX)
+        .allow('')
+        .optional()
+        .label('Số điện thoại liên hệ'),
+
+    contact_social_media: Joi.object({
+        facebook: Joi.string().uri().allow('').optional(),
+        zalo: Joi.string().allow('').optional(),
+        instagram: Joi.string().uri().allow('').optional(),
+    })
+        .optional()
+        .default({}),
 
     category_id: Joi.string()
         .custom((value, helpers) => {
@@ -37,3 +55,14 @@ export const createPostValidate = Joi.object({
         .optional()
         .label('ID danh mục'),
 })
+    .custom((obj, helpers) => {
+    // Kiểm tra xem có ít nhất một trong hai thông tin liên hệ
+        const hasPhone = obj.contact_phone && obj.contact_phone.trim().length > 0
+        const hasFacebook = obj.contact_social_media && obj.contact_social_media.facebook && obj.contact_social_media.facebook.trim().length > 0
+    
+        if (!hasPhone && !hasFacebook) {
+            throw new Error('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
+        }
+    
+        return obj
+    })

@@ -163,4 +163,4 @@ export const VALIDATE_PHONE_REGEX = /^(0[235789])[0-9]{8}$/
 export const VALIDATE_PASSWORD_REGEX = /^.{6,}$/
 // export const VALIDATE_FULL_NAME_REGEX = /^[a-zA-ZÀ-ỹ ]+$/
 
-export const VALIDATE_FULL_NAME_REGEX = /^.{6,}$/
+export const VALIDATE_FULL_NAME_REGEX = /^.{1,}$/
