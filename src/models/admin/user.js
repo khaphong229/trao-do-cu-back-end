@@ -6,7 +6,7 @@ import mongoose from 'mongoose'
 const infoFulledUser = {
     ...infoGeneralUser,
     address: {
-        type: String,
+        type: [String]
     },
     birth_date: {
         type: Date,
