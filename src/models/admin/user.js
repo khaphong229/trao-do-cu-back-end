@@ -5,9 +5,12 @@ import mongoose from 'mongoose'
 
 const infoFulledUser = {
     ...infoGeneralUser,
-    address: {
-        type: [String]
-    },
+    address: [
+        {
+            address: { type: String, required: true },
+            isDefault: { type: Boolean, default: false }
+        }
+    ],
     birth_date: {
         type: Date,
     },
