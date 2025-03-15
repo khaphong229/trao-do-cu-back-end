@@ -72,6 +72,10 @@ const Post = createModel(
             type: Boolean,
             default: false,
         },
+        isApproved: {
+            type: Boolean,
+            default: false,
+        },
     },
     {}
 )

@@ -265,3 +265,7 @@ export const resetPassword = Joi.object({
                 '{{#label}} phải có ít nhất một chữ thường, chữ hoa, số và ký tự đặc biệt.',
         }),
 })
+
+export const updateDefaultAddress = Joi.object({
+    address_id: Joi.string().required().label('ID địa chỉ'),
+})
