@@ -159,28 +159,30 @@ export const updateProfile = Joi.object({
     avatar: Joi.string()
         .allow('') // cho phép giá trị rỗng
         .label('Ảnh đại diện'),
-    address: Joi.array().items(
-        Joi.object({
-            address: Joi.string().required().min(6).max(MAX_STRING_SIZE).label('Địa chỉ'),
-            isDefault: Joi.boolean().default(false).label('Địa chỉ mặc định')
+    address: Joi.array()
+        .items(
+            Joi.object({
+                address: Joi.string().required().min(6).max(MAX_STRING_SIZE).label('Địa chỉ'),
+                isDefault: Joi.boolean().default(false).label('Địa chỉ mặc định'),
+            })
+        )
+        .unique((a, b) => a.address === b.address) // Không cho phép địa chỉ trùng lặp
+        .custom((addresses, helpers) => {
+            // Kiểm tra chỉ có một địa chỉ mặc định
+            const defaultAddresses = addresses.filter((addr) => addr.isDefault)
+            if (defaultAddresses.length > 1) {
+                return helpers.message('Chỉ được phép có một địa chỉ mặc định')
+            }
+            return addresses
         })
-    ).unique((a, b) => a.address === b.address) // Không cho phép địa chỉ trùng lặp
-    .custom((addresses, helpers) => {
-        // Kiểm tra chỉ có một địa chỉ mặc định
-        const defaultAddresses = addresses.filter(addr => addr.isDefault);
-        if (defaultAddresses.length > 1) {
-            return helpers.message('Chỉ được phép có một địa chỉ mặc định');
-        }
-        return addresses;
-    })
-    .label('Danh sách địa chỉ'),
+        .label('Danh sách địa chỉ'),
     birth_date: Joi.date().iso().allow(null).label('Ngày sinh nhật'),
     gender: Joi.string().allow('').label('Giới tính'),
     category_care: Joi.array().items(Joi.string()).allow('').label('Các loại đồ quan tâm'),
     social_media: Joi.object({
         facebook: Joi.string().uri().allow('').optional(),
         zalo: Joi.string().allow('').optional(),
-        instagram: Joi.string().uri().allow('').optional()
+        instagram: Joi.string().uri().allow('').optional(),
     })
         .optional()
         .default({})
@@ -191,11 +193,13 @@ export const updateProfile = Joi.object({
     .custom((obj, helpers) => {
         const hasPhone = obj.phone && obj.phone.trim().length > 0
         const hasFacebook = obj.social_media?.facebook && obj.social_media.facebook.trim().length > 0
-    
+
         if (!hasPhone && !hasFacebook) {
-            return helpers.message('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
+            return helpers.message(
+                'Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)'
+            )
         }
-    
+
         return obj
     })
     .messages({
