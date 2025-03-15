@@ -6,6 +6,8 @@ import mongoose from 'mongoose'
 const infoFulledUser = {
     ...infoGeneralUser,
     address: [
+        // input: _id trong address
+        // Thêm 1 api sửa địa chỉ => only 1 true
         {
             address: { type: String, required: true },
             isDefault: { type: Boolean, default: false }

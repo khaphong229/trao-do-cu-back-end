@@ -65,3 +65,9 @@ export const loginSuccess = async (req, res) => {
     res.jsonify(authService.authToken(data))
     // console.log('data', data)
 }
+
+export const updateDefaultAddress = async (req, res) => {
+    const { address_id } = req.body
+    const user = await authService.updateDefaultAddress(address_id, req.currentUser._id)
+    res.status(200).jsonify(user, 'Cập nhật địa chỉ mặc định thành công')
+}

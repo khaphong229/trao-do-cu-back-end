@@ -84,4 +84,11 @@ authRouter.get(
 
 authRouter.post('/login-success', asyncHandler(authController.loginSuccess))
 
+authRouter.post(
+    '/update-default-address',
+    asyncHandler(requireAuthentication),
+    asyncHandler(validate(authRequest.updateDefaultAddress)),
+    asyncHandler(authController.updateDefaultAddress)
+)
+
 export default authRouter
