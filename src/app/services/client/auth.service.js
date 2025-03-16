@@ -71,3 +71,30 @@ export async function loginSuccessGG(googleId) {
     }
     return user
 }
+
+export const updateDefaultAddress = async (address_id, user_id) => {
+    const user = await User.findById(user_id)
+    if (!user) {
+        abort(404, 'Người dùng không tồn tại')
+    }
+
+    // Kiểm tra xem địa chỉ có tồn tại trong danh sách không
+    const addressExists = user.address.some(addr => addr._id.toString() === address_id)
+    if (!addressExists) {
+        abort(404, 'Địa chỉ không tồn tại')
+    }
+
+    // Cập nhật tất cả địa chỉ thành false trước
+    await User.updateOne(
+        { _id: user_id },
+        { $set: { 'address.$[].isDefault': false } }
+    )
+
+    // Sau đó cập nhật địa chỉ được chọn thành true
+    await User.updateOne(
+        { _id: user_id, 'address._id': address_id },
+        { $set: { 'address.$.isDefault': true } }
+    )
+
+    return await User.findById(user_id).select('-password')
+}

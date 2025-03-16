@@ -159,15 +159,17 @@ export const updateProfile = Joi.object({
     avatar: Joi.string()
         .allow('') // cho phép giá trị rỗng
         .label('Ảnh đại diện'),
-    address: Joi.array().items(
-        Joi.object({
-            address: Joi.string().required().min(6).max(MAX_STRING_SIZE).label('Địa chỉ'),
-            isDefault: Joi.boolean().default(false).label('Địa chỉ mặc định')
-        })
-    ).unique((a, b) => a.address === b.address) // Không cho phép địa chỉ trùng lặp
+    address: Joi.array()
+        .items(
+            Joi.object({
+                address: Joi.string().required().min(6).max(MAX_STRING_SIZE).label('Địa chỉ'),
+                isDefault: Joi.boolean().default(false).label('Địa chỉ mặc định'),
+            })
+        )
+        .unique((a, b) => a.address === b.address) // Không cho phép địa chỉ trùng lặp
         .custom((addresses, helpers) => {
-        // Kiểm tra chỉ có một địa chỉ mặc định
-            const defaultAddresses = addresses.filter(addr => addr.isDefault)
+            // Kiểm tra chỉ có một địa chỉ mặc định
+            const defaultAddresses = addresses.filter((addr) => addr.isDefault)
             if (defaultAddresses.length > 1) {
                 return helpers.message('Chỉ được phép có một địa chỉ mặc định')
             }
@@ -180,7 +182,7 @@ export const updateProfile = Joi.object({
     social_media: Joi.object({
         facebook: Joi.string().uri().allow('').optional(),
         zalo: Joi.string().allow('').optional(),
-        instagram: Joi.string().uri().allow('').optional()
+        instagram: Joi.string().uri().allow('').optional(),
     })
         .optional()
         .default({})
@@ -191,11 +193,13 @@ export const updateProfile = Joi.object({
     .custom((obj, helpers) => {
         const hasPhone = obj.phone && obj.phone.trim().length > 0
         const hasFacebook = obj.social_media?.facebook && obj.social_media.facebook.trim().length > 0
-    
+
         if (!hasPhone && !hasFacebook) {
-            return helpers.message('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
+            return helpers.message(
+                'Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)'
+            )
         }
-    
+
         return obj
     })
     .messages({
@@ -260,4 +264,8 @@ export const resetPassword = Joi.object({
             'string.pattern.base':
                 '{{#label}} phải có ít nhất một chữ thường, chữ hoa, số và ký tự đặc biệt.',
         }),
+})
+
+export const updateDefaultAddress = Joi.object({
+    address_id: Joi.string().required().label('ID địa chỉ'),
 })
