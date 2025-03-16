@@ -165,15 +165,15 @@ export const updateProfile = Joi.object({
             isDefault: Joi.boolean().default(false).label('Địa chỉ mặc định')
         })
     ).unique((a, b) => a.address === b.address) // Không cho phép địa chỉ trùng lặp
-    .custom((addresses, helpers) => {
+        .custom((addresses, helpers) => {
         // Kiểm tra chỉ có một địa chỉ mặc định
-        const defaultAddresses = addresses.filter(addr => addr.isDefault);
-        if (defaultAddresses.length > 1) {
-            return helpers.message('Chỉ được phép có một địa chỉ mặc định');
-        }
-        return addresses;
-    })
-    .label('Danh sách địa chỉ'),
+            const defaultAddresses = addresses.filter(addr => addr.isDefault)
+            if (defaultAddresses.length > 1) {
+                return helpers.message('Chỉ được phép có một địa chỉ mặc định')
+            }
+            return addresses
+        })
+        .label('Danh sách địa chỉ'),
     birth_date: Joi.date().iso().allow(null).label('Ngày sinh nhật'),
     gender: Joi.string().allow('').label('Giới tính'),
     category_care: Joi.array().items(Joi.string()).allow('').label('Các loại đồ quan tâm'),
