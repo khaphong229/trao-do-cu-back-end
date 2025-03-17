@@ -76,6 +76,14 @@ const Post = createModel(
             type: Boolean,
             default: false,
         },
+        approvalReason: {
+            type: String,
+            default: ''
+        },
+        approvedAt: {
+            type: Date,
+            default: null
+        }
     },
     {}
 )

@@ -63,6 +63,8 @@ export const filterCategory = async (qs, limit, current, req) => {
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
+    filter.isApproved = true  // Chỉ hiển thị bài đã được duyệt
+    
     let {q} = filter
     delete filter.q
     if (q) {
@@ -76,6 +78,8 @@ export const filterCategory = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
+    console.log('filterCategory query:', {filter, current, limit, sort})
+
     const data = await Post.find(filter)
         .populate('user_id')
         .skip((current - 1) * limit)
@@ -107,6 +111,7 @@ export const filterCategory = async (qs, limit, current, req) => {
         : data
 
     const total = await Post.countDocuments(filter)
+    console.log('filterCategory result:', {total, dataLength: data.length})
     return {total, current, limit, data: processedData}
 }
 
@@ -114,28 +119,28 @@ export const filter = async (qs, limit, current, req) => {
     let {filter} = aqp(qs)
     delete filter.current
     delete filter.pageSize
-    filter.isDeleted = false
+
     let {q} = filter
     delete filter.q
+
+    // Thêm điều kiện cơ bản
+    filter.isDeleted = false
+    filter.isApproved = true
+    filter.status = 'active'
 
     if (q) {
         q = q ? {$regex: q, $options: 'i'} : null
         filter = {
+            ...filter,
             ...(q && {$or: [{title: q}, {description: q}]}),
         }
-        filter.isDeleted = false
     }
 
     let {sort} = aqp(qs)
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 16
     if (!sort) sort = {created_at: -1}
-
-    const baseQuery = {
-        ...filter,
-        status: 'active',
-        isDeleted: false
-    }
+    console.log('filter query:', {filter, current, limit, sort})
 
     let data = []
     const userId = req.currentUser?._id
@@ -172,7 +177,7 @@ export const filter = async (qs, limit, current, req) => {
             }
 
             // Query với ưu tiên nhưng không lọc bỏ bài viết nào
-            data = await Post.find(baseQuery)
+            data = await Post.find(filter)
                 .lean()
                 .then(posts => {
                     // Đánh dấu bài viết thuộc category ưu tiên
@@ -209,7 +214,7 @@ export const filter = async (qs, limit, current, req) => {
             ])
         } else {
             // User chưa khảo sát - query đơn giản
-            data = await Post.find(baseQuery)
+            data = await Post.find(filter)
                 .populate('user_id', '_id name email avatar phone address status')
                 .populate('category_id', '_id name')
                 .skip((current - 1) * limit)
@@ -219,7 +224,7 @@ export const filter = async (qs, limit, current, req) => {
         }
     } else {
         // User chưa đăng nhập - query đơn giản
-        data = await Post.find(baseQuery)
+        data = await Post.find(filter)
             .populate('user_id', '_id name email avatar phone address status')
             .populate('category_id', '_id name')
             .skip((current - 1) * limit)
@@ -234,19 +239,24 @@ export const filter = async (qs, limit, current, req) => {
             data.map(async (post) => {
                 const token = getToken(req.headers)
                 if (token) {
-                    const allowedToken = _.isUndefined(await tokenBlocklist.get(token))
-                    if (allowedToken) {
-                        const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
-                        const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-                        const request = await requestModel.findOne({
-                            post_id: post._id,
-                            user_req_id: user_id,
-                        }).lean()
+                    try {
+                        const allowedToken = _.isUndefined(await tokenBlocklist.get(token))
+                        if (allowedToken) {
+                            const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
+                            const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+                            const request = await requestModel.findOne({
+                                post_id: post._id,
+                                user_req_id: user_id,
+                            }).lean()
 
-                        return {
-                            ...post,
-                            isRequested: !!request
+                            return {
+                                ...post,
+                                isRequested: !!request
+                            }
                         }
+                    } catch (error) {
+                        // Nếu token hết hạn hoặc không hợp lệ, trả về post không có isRequested
+                        console.log('Token error:', error.message)
                     }
                 }
                 return post
@@ -254,7 +264,8 @@ export const filter = async (qs, limit, current, req) => {
         )
         : data
 
-    const total = await Post.countDocuments(baseQuery)
+    const total = await Post.countDocuments(filter)
+    console.log('filter result:', {total, dataLength: data.length})
     return {total, current, limit, data: processedData}
 }
 

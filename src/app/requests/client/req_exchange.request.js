@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import mongoose from 'mongoose'
-import {MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from '@/configs'
+import {MAX_STRING_SIZE, MAX_STRING_SIZE_TEXT, VALIDATE_PHONE_REGEX} from '@/configs'
 
 export const createExchangeRequestValidate = Joi.object({
     post_id: Joi.string()
@@ -27,7 +27,7 @@ export const createExchangeRequestValidate = Joi.object({
 
     description: Joi.string()
         .trim()
-        .max(MAX_STRING_SIZE)
+        .max(MAX_STRING_SIZE_TEXT)
         .optional()
         .allow('')
         .label('Mô tả yêu cầu trao đổi'),
