@@ -1,6 +1,7 @@
 import aqp from 'api-query-params'
 import { abort } from '@/utils/helpers'
 import Post from '@/models/client/post'
+import { generateItemCode } from '../client/item-code.service'
 
 export const filter = async (qs, limit, current) => {
     const {filter} = aqp(qs)
@@ -46,7 +47,7 @@ export const filter = async (qs, limit, current) => {
 }
 
 export const updatePostApproval = async (postId, { isApproved, reason }) => {
-    const post = await Post.findById(postId)
+    const post = await Post.findById(postId).populate('category_id')
     if (!post) {
         abort(404, 'Bài viết không tồn tại')
     }
@@ -54,6 +55,18 @@ export const updatePostApproval = async (postId, { isApproved, reason }) => {
     post.isApproved = isApproved
     post.approvalReason = reason
     post.approvedAt = isApproved ? new Date() : null
+    
+    // Nếu bài đăng được duyệt, tạo mã vật phẩm
+    if (isApproved && !post.itemCode) {
+        // Kiểm tra category_id có tồn tại không
+        if (!post.category_id) {
+            abort(400, 'Bài viết không có danh mục')
+        }
+        
+        // Tạo mã vật phẩm dựa trên category
+        const itemCode = await generateItemCode(post.category_id._id)
+        post.itemCode = itemCode
+    }
     
     await post.save()
 

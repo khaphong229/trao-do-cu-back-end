@@ -225,15 +225,15 @@ export const updateStatus = async (req) => {
     // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
         // 1. Cập nhật trạng thái của bài post thành inactive
-        await Post.updateOne({_id: requestDoc.post_id}, {status: 'inactive'})
+        await Post.updateOne({_id: requestDoc.post_id._id}, {status: 'inactive'})
 
-        // 2. Tạo mã vật phẩm
-        const itemCode = await generateItemCode(requestDoc.post_id.category_id._id)
+        // 2. Lấy mã vật phẩm từ post
+        const itemCode = requestDoc.post_id.itemCode
+        if (!itemCode) {
+            abort(400, 'Bài viết chưa được admin duyệt hoặc chưa có mã vật phẩm')
+        }
         
-        // 3. Cập nhật mã vật phẩm vào Post
-        await Post.findByIdAndUpdate(requestDoc.post_id._id, { itemCode })
-        
-        // 4. Chuẩn bị dữ liệu cho QR code
+        // 3. Chuẩn bị dữ liệu cho QR code
         const qrData = {
             requestId: requestDoc._id.toString(),
             itemCode: itemCode,
@@ -247,16 +247,16 @@ export const updateStatus = async (req) => {
             completedAt: new Date().toISOString()
         }
         
-        // 5. Tạo QR code
+        // 4. Tạo QR code
         const qrCodeUrl = await generateTransactionQR(qrData)
         
-        // 6. Cập nhật URL QR code vào Request
+        // 5. Cập nhật URL QR code vào Request
         await RequestsExchange.findByIdAndUpdate(_id, { 
             status: status,
             qrCode: qrCodeUrl 
         })
 
-        // 7. Tạo thông báo cho người gửi yêu cầu
+        // 6. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
             // Người nhận thông báo là người gửi yêu cầu (user_req_id)
             user_id: requestDoc.user_req_id,

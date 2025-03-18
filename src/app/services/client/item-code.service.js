@@ -22,10 +22,10 @@ export const generateItemCode = async (categoryId) => {
     // Lấy mã viết tắt từ category hoặc tạo mới từ tên
     const shortCode = category.shortCode || getShortCode(category.name)
     
-    // Đếm số lượng vật phẩm đã hoàn thành trong danh mục
+    // Đếm số lượng vật phẩm trong danh mục
     const count = await Post.countDocuments({ 
         category_id: categoryId,
-        status: 'completed'
+        // status: 'completed'
     })
     
     // Tạo mã vật phẩm: ĐĐT-001, QA-002,...
