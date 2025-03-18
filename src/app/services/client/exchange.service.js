@@ -216,7 +216,7 @@ export const updateStatus = async (req) => {
         .populate('user_req_id')
         .lean()
 
-    // console.log('requestDoc', requestDoc)
+    console.log('requestDoc', requestDoc)
 
     if (!requestDoc) {
         abort(404, 'Không tìm thấy yêu cầu trao đổi')
@@ -241,8 +241,8 @@ export const updateStatus = async (req) => {
             category: {
                 name: requestDoc.post_id.category_id.name
             },
-            owner: requestDoc.post_id.user_id.name,
             receiver: requestDoc.user_req_id.name,
+            phone_user_req: requestDoc.contact_phone,
             transactionType: 'exchange', // Xác định đây là giao dịch trao đổi
             completedAt: new Date().toISOString()
         }

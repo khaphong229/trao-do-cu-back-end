@@ -189,6 +189,7 @@ export const updateStatus = async (req) => {
         })
         .populate('user_req_id')
         .lean()
+    // console.log(requestDoc)
 
     if (!requestDoc) {
         abort(404, 'Không tìm thấy yêu cầu nhận quà tặng')
@@ -213,8 +214,8 @@ export const updateStatus = async (req) => {
             category: {
                 name: requestDoc.post_id.category_id.name
             },
-            owner: requestDoc.post_id.user_id.name,
             receiver: requestDoc.user_req_id.name,
+            phone_user_req: requestDoc.contact_phone,
             transactionType: 'gift', // Xác định đây là giao dịch trao tặng
             completedAt: new Date().toISOString()
         }
@@ -240,6 +241,7 @@ export const updateStatus = async (req) => {
             updated_at: new Date(),
         })
         await newNotification.save()
+        console.log(requestDoc.contact_phone)
     } else {
         // Nếu không phải accepted, chỉ cập nhật status
         const updateResult = await RequestsReceive.updateOne({_id: _id}, {status: status})
