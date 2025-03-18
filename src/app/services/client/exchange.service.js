@@ -3,6 +3,8 @@ import Post from '@/models/client/post'
 import RequestsExchange from '@/models/client/requests_exchange'
 import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
+import { generateTransactionQR } from './qrcode.service'
+import { generateItemCode } from './item-code.service'
 
 export async function create(requestBody) {
     const {
@@ -196,56 +198,88 @@ export const updateStatus = async (req) => {
 
     // Kiểm tra các trường bắt buộc
     if (!_id) {
-        return abort(400, 'ID không được để trống')
+        abort(400, 'ID không được để trống')
     }
     if (!status) {
-        return abort(400, 'Status không được để trống')
+        abort(400, 'Status không được để trống')
     }
 
-    // Tìm document yêu cầu trao đổi theo _id
-    const requestDoc = await RequestsExchange.findOne({_id: _id}).lean()
+    // Tìm document yêu cầu trao đổi theo _id và populate thông tin cần thiết
+    const requestDoc = await RequestsExchange.findOne({_id: _id})
+        .populate({
+            path: 'post_id',
+            populate: [
+                { path: 'category_id' },
+                { path: 'user_id' }
+            ]
+        })
+        .populate('user_req_id')
+        .lean()
+
+    // console.log('requestDoc', requestDoc)
+
     if (!requestDoc) {
-        return abort(400, 'Không tìm thấy yêu cầu trao đổi')
+        abort(404, 'Không tìm thấy yêu cầu trao đổi')
     }
 
-    // Nếu trạng thái được cập nhật thành "approved",
-    // cập nhật trạng thái của bài post liên quan (ví dụ: set thành "inactive")
+    // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
-        // Lưu ý: post_id có thể là ObjectId trực tiếp hoặc đã populate.
-        // Ở đây chúng ta giả định post_id là ObjectId.
+        // 1. Cập nhật trạng thái của bài post thành inactive
         await Post.updateOne({_id: requestDoc.post_id}, {status: 'inactive'})
-    }
 
-    // Cập nhật trạng thái của yêu cầu trao đổi
-    const updateResult = await RequestsExchange.updateOne({_id: _id}, {status: status})
-    if (!updateResult) {
-        return abort(400, 'Không tìm thấy document')
-    }
+        // 2. Tạo mã vật phẩm
+        const itemCode = await generateItemCode(requestDoc.post_id.category_id._id)
+        
+        // 3. Cập nhật mã vật phẩm vào Post
+        await Post.findByIdAndUpdate(requestDoc.post_id._id, { itemCode })
+        
+        // 4. Chuẩn bị dữ liệu cho QR code
+        const qrData = {
+            requestId: requestDoc._id.toString(),
+            itemCode: itemCode,
+            itemName: requestDoc.post_id.title,
+            category: {
+                name: requestDoc.post_id.category_id.name
+            },
+            owner: requestDoc.post_id.user_id.name,
+            receiver: requestDoc.user_req_id.name,
+            transactionType: 'exchange', // Xác định đây là giao dịch trao đổi
+            completedAt: new Date().toISOString()
+        }
+        
+        // 5. Tạo QR code
+        const qrCodeUrl = await generateTransactionQR(qrData)
+        
+        // 6. Cập nhật URL QR code vào Request
+        await RequestsExchange.findByIdAndUpdate(_id, { 
+            status: status,
+            qrCode: qrCodeUrl 
+        })
 
-    // Nếu trạng thái được cập nhật là "accepted", tạo mới thông báo cho người gửi yêu cầu.
-    // Ở giai đoạn này, thông báo sẽ được gửi đến người đi xin (user_req_id)
-    if (status === 'accepted') {
+        // 7. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
             // Người nhận thông báo là người gửi yêu cầu (user_req_id)
             user_id: requestDoc.user_req_id,
             // Loại thông báo cho việc duyệt yêu cầu trao đổi
             type: 'approve_exchange',
-            source_model: 'RequestsExchange',
             // Liên kết thông báo với bài post liên quan
-            post_id: requestDoc.post_id,
+            source_model: 'RequestsExchange',
             // Lưu trữ ID của yêu cầu trao đổi đã được duyệt
+            post_id: requestDoc.post_id._id,
             source_id: _id,
             // Mặc định thông báo chưa được đọc
             isRead: false,
-            // Thiết lập thời gian tạo và cập nhật
             created_at: new Date(),
             updated_at: new Date(),
         })
         await newNotification.save()
+    } else {
+        // Nếu không phải accepted, chỉ cập nhật status
+        const updateResult = await RequestsExchange.updateOne({_id: _id}, {status: status})
+        if (!updateResult) {
+            abort(400, 'Không tìm thấy document')
+        }
     }
-
-    // Trả về kết quả cập nhật (có thể là một object chứa thông tin về số lượng document được cập nhật)
-    return updateResult
 }
 
 // Xóa bản ghi

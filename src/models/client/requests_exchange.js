@@ -36,6 +36,10 @@ const RequestsExchange = createModel('RequestsExchange', 'requests_exchange', {
     contact_address: {
         type: String,
     },
+    qrCode: {
+        type: String,
+        default: null,
+    },
     deletedAt: Date,
     isDeleted: {
         type: Boolean,

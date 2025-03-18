@@ -36,6 +36,10 @@ const RequestsReceive = createModel(
             type: String,
             required: false,
         },
+        qrCode: {
+            type: String,
+            default: null,
+        },
         deletedAt: Date,
         isDeleted: {
             type: Boolean,

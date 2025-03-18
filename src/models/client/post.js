@@ -28,6 +28,11 @@ const Post = createModel(
             enum: ['active', 'inactive'],
             default: 'active',
         },
+        itemCode: {
+            type: String,
+            default: null
+            // VD : DĐT-001, QA-002,...
+        },
         specificLocation: {
             type: String,
             required: true,
