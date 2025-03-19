@@ -28,3 +28,14 @@ export const deleted = async (req, res) => {
     await exchangeService.remove(req.params.id)
     res.status(201).jsonify('Từ chối người dùng thành công')
 }
+
+export const countFavorites = async (req, res) => {
+    const result = await exchangeService.getRequestCountByPost(req.query.postId)
+    res.json(result)
+}
+
+export const getAllRequests = async (req, res) => {
+    const userId = req.currentUser._id
+    const result = await exchangeService.getAllRequestsByUser(userId)
+    res.json(result)
+} 

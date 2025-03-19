@@ -29,3 +29,15 @@ export const deleted = async (req, res) => {
     await giftService.remove(req.params.id)
     res.status(201).jsonify('Từ chối người dùng thành công')
 }
+
+export const countFavorites = async (req, res) => {
+    const result = await giftService.getRequestCountByPost(req.query.postId)
+    res.jsonify(result)
+}
+
+export const getAllRequests = async (req, res) => {
+    const userId = req.currentUser._id
+    const result = await giftService.getAllRequestsByUser(userId)
+    res.json(result)
+}
+

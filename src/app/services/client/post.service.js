@@ -22,10 +22,10 @@ export async function create(requestBody, req) {
 export async function createRePostSer(requestBody, req) {
     const {postId} = requestBody
     const userId = req.currentUser._id
-    console.log({postId, userId})
+    // console.log({postId, userId})
     // Kiểm tra bài gốc
     const originalPost = await Post.findOne({_id: postId, user_id: userId})
-    console.log('originalPost', originalPost)
+    // console.log('originalPost', originalPost)
     if (!originalPost) {
         abort(404, 'Bài đăng không tồn tại hoặc không thuộc về bạn.')
     }
@@ -324,3 +324,18 @@ export const details = async (id, req) => {
         isRequested: !!request,
     }
 }
+
+// Update thêm chưa xong nma đang suy nghĩ
+// const getAllRequestedPostsByUser = async (userId) => {
+// Đã validate đầu vào cho userId
+//     // 1. Lấy tất cả bài đăng của user
+//     const userPosts = await Post.find({user_id: userId})
+//     // 2. Lấy tất cả yêu cầu trao đổi/ trao tặng cho các bài đăng này
+//     // const requests = await RequestsReceive.find({post_id: {$in: userPosts.map(post => post._id)}})
+//     const requests = await RequestsExchange.find({post_id: {$in: userPosts.map(post => post._id)}})
+//     // 3. Trả về danh sách bài đăng và yêu cầu
+//     return {
+//         posts: userPosts,
+//         requests: requests
+//     }
+// }

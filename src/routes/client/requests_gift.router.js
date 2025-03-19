@@ -33,4 +33,10 @@ giftRouter.delete(
     asyncHandler(giftController.deleted)
 )
 
+// [GET] : /request_gift/countFavorites
+giftRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(giftController.countFavorites))
+
+// [GET] : /request_gift/all-requests => Lấy tất cả yêu cầu của các bài đăng của người dùng
+giftRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(giftController.getAllRequests))
+
 export default giftRouter

@@ -296,3 +296,77 @@ export const remove = async (_id) => {
 
     return request
 }
+
+export const getAllRequestsByUser = async (userId) => {
+    if (!userId) {
+        abort(400, 'ID người dùng không được để trống')
+    }
+
+    // 1. Tìm tất cả bài đăng của user
+    const userPosts = await Post.find({
+        user_id: userId,
+        type: 'exchange',
+    })
+
+    if (!userPosts.length) {
+        return {
+            total: 0,
+            requests: []
+        }
+    }
+
+    // 2. Lấy tất cả yêu cầu trao đổi cho các bài đăng này
+    const requests = await RequestsExchange.find({
+        post_id: { $in: userPosts.map(post => post._id) },
+    })
+        .populate({
+            path: 'post_id',
+            select: 'title type status'
+        })
+        .populate('user_req_id', 'name email')
+        .sort({ created_at: -1 })
+
+    // 3. Tính toán total mới
+    let total = requests.length
+    if (total < 5) {
+        // Nếu total < 5, thêm số random từ 5-10
+        const additionalRequests = Math.floor(Math.random() * 6) + 5 // Random từ 5-10
+        total += additionalRequests
+    }
+
+    return {
+        total,
+        actual_total: requests.length, // Giữ lại số thật để tham khảo
+        requests: requests
+    }
+}
+
+export const getRequestCountByPost = async (postId) => {
+    if (!postId) {
+        abort(400, 'ID bài viết không được để trống')
+    }
+
+    // Kiểm tra bài viết có tồn tại và có phải loại exchange không
+    const post = await Post.findOne({ _id: postId, type: 'exchange' })
+    if (!post) {
+        abort(404, 'Không tìm thấy bài viết hoặc bài viết không phải loại trao đổi')
+    }
+
+    // Đếm số lượng yêu cầu cho bài viết này
+    const count = await RequestsExchange.countDocuments({
+        post_id: postId,
+        isDeleted: false
+    })
+
+    // Nếu số lượng < 5, thêm số random từ 5-10
+    let total = count
+    if (total < 5) {
+        const additionalRequests = Math.floor(Math.random() * 6) + 5
+        total += additionalRequests
+    }
+
+    return {
+        total,
+        actual_total: count
+    }
+}

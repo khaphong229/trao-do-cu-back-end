@@ -4,7 +4,8 @@ import * as exchangeRequest from '../../app/requests/client/req_exchange.request
 import * as exchangeController from '../../app/controllers/client/reqExchange.controller'
 import * as excMiddleware from '../../app/middleware/common/client/reqExchangeCheckId.middeware'
 import {asyncHandler} from '@/utils/helpers'
-import {Router} from 'express'
+import express, {Router} from 'express'
+
 
 const exchangeRouter = Router()
 
@@ -31,5 +32,11 @@ exchangeRouter.delete(
     asyncHandler(requireAuthentication),
     asyncHandler(exchangeController.deleted)
 )
+
+// [GET] : /request_exchange/countFavorites
+exchangeRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(exchangeController.countFavorites))
+
+// [GET] : /request_exchange/all-requests => Lấy tất cả yêu cầu của các bài đăng của người dùng
+exchangeRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(exchangeController.getAllRequests))
 
 export default exchangeRouter

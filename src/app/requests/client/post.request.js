@@ -66,3 +66,8 @@ export const createPostValidate = Joi.object({
     
         return obj
     })
+
+
+export const getAllRequestedPostsByUserValidate = Joi.object({
+    userId: Joi.string().required().label('ID người dùng')
+})
