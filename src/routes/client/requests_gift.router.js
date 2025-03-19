@@ -3,6 +3,7 @@ import validate from '@/app/middleware/common/validate'
 import * as giftRequest from '../../app/requests/client/req_receive.request'
 import * as giftController from '../../app/controllers/client/reqGift.controller'
 import * as giftMiddleware from '../../app/middleware/common/client/reqReceiveCheckId.middeware'
+import * as ptiterMiddleware from '../../app/middleware/common/client/checkPtiterAccess.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import {Router} from 'express'
 
@@ -13,6 +14,7 @@ giftRouter.post(
     '/',
     asyncHandler(requireAuthentication),
     asyncHandler(validate(giftRequest.createReceiveRequestValidate)),
+    asyncHandler(ptiterMiddleware.checkPtiterAccess),
     asyncHandler(giftController.createPost)
 )
 

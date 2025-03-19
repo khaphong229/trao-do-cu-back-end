@@ -1,6 +1,8 @@
 import Joi from 'joi'
 import {category_id_default, MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from '@/configs'
 import mongoose from 'mongoose'
+import {AsyncValidate} from '@/utils/classes'
+import {User} from '@/models'
 
 export const createPostValidate = Joi.object({
     title: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Tiêu đề bài đăng'),
@@ -14,6 +16,26 @@ export const createPostValidate = Joi.object({
         .optional()
         .default('active')
         .label('Trạng thái bài đăng'),
+
+    isPtiterOnly: Joi.boolean()
+        .default(false)
+        .custom((value, helpers) => 
+            new AsyncValidate(value, async function (req) {
+                // Nếu user không phải PTIT mà cố tình set isPtiterOnly = true
+                if (value === true) {
+                    const user = await User.findById(req.currentUser._id)
+                    if (!user.isPtiter) {
+                        return helpers.error('boolean.notPtiter')
+                    }
+                }
+                return value
+            })
+        )
+        .label('Chỉ dành cho sinh viên PTIT')
+        .messages({
+            'boolean.base': 'Trường chỉ dành cho sinh viên PTIT phải là true hoặc false',
+            'boolean.notPtiter': 'Bạn không phải sinh viên PTIT nên không thể đăng bài dành riêng cho PTIT'
+        }),
 
     specificLocation: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Địa điểm cụ thể'),
     city: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Thành phố'),
@@ -51,7 +73,7 @@ export const createPostValidate = Joi.object({
             }
             return value
         })
-        .default(category_id_default) // Giá trị mặc định
+        .default(category_id_default)
         .optional()
         .label('ID danh mục'),
 })
@@ -59,14 +81,13 @@ export const createPostValidate = Joi.object({
     // Kiểm tra xem có ít nhất một trong hai thông tin liên hệ
         const hasPhone = obj.contact_phone && obj.contact_phone.trim().length > 0
         const hasFacebook = obj.contact_social_media && obj.contact_social_media.facebook && obj.contact_social_media.facebook.trim().length > 0
-    
+
         if (!hasPhone && !hasFacebook) {
             throw new Error('Vui lòng cung cấp ít nhất một thông tin liên hệ (Số điện thoại hoặc Facebook)')
         }
-    
+
         return obj
     })
-
 
 export const getAllRequestedPostsByUserValidate = Joi.object({
     userId: Joi.string().required().label('ID người dùng')

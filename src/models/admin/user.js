@@ -19,6 +19,10 @@ const infoFulledUser = {
     gender: {
         type: String,
     },
+    isPtiter: {
+        type: Boolean,
+        default: false
+    },
     category_care: [
         {
             type: mongoose.Schema.Types.ObjectId,

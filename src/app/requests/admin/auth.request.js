@@ -34,17 +34,21 @@ export const register = Joi.object({
                     const admin = await Admin.findOne({email: value})
                     return !admin ? value : helpers.error('any.exists')
                 })
-        ),
+        )
+        .messages({
+            'string.email': '{{#label}} không đúng định dạng',
+            'any.exists': '{{#label}} đã tồn tại trong hệ thống'
+        }),
     password: Joi.string()
         .min(6)
         .max(MAX_STRING_SIZE)
-        .pattern(VALIDATE_PASSWORD_REGEX) // đã giảm
+        .pattern(VALIDATE_PASSWORD_REGEX)
         .required()
         .label('Mật khẩu')
         .messages({
-            'string.pattern.base':
-                // '{{#label}} phải có ít nhất một chữ thường, chữ hoa, số và ký tự đặc biệt.',
-                '{{#label}} phải có ít nhất 6 kí tự.',
+            'string.pattern.base': '{{#label}} phải có ít nhất 6 kí tự',
+            'string.min': '{{#label}} phải có ít nhất {{#limit}} kí tự',
+            'string.max': '{{#label}} không được vượt quá {{#limit}} kí tự'
         }),
     phone: Joi.string()
         .trim()
@@ -57,7 +61,17 @@ export const register = Joi.object({
                     const user = await User.findOne({phone: value})
                     return !user ? value : helpers.error('any.exists')
                 })
-        ),
+        )
+        .messages({
+            'string.pattern.base': '{{#label}} không đúng định dạng',
+            'any.exists': '{{#label}} đã tồn tại trong hệ thống'
+        }),
+    isPtiter: Joi.boolean()
+        .default(false)
+        .label('Sinh viên PTIT')
+        .messages({
+            'boolean.base': 'Trường sinh viên PTIT phải là true hoặc false'
+        }),
     avatar: Joi.object({
         mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
             .required()
@@ -66,7 +80,11 @@ export const register = Joi.object({
         .unknown(true)
         .instance(FileUpload)
         .allow('')
-        .label('Ảnh đại diện'),
+        .label('Ảnh đại diện')
+        .messages({
+            'object.instance': '{{#label}} không đúng định dạng',
+            'any.only': '{{#label}} chỉ chấp nhận định dạng jpeg, png, svg hoặc webp'
+        }),
 })
 
 export const updateProfile = Joi.object({
@@ -90,7 +108,11 @@ export const updateProfile = Joi.object({
                     const admin = await Admin.findOne({email: value, _id: {$ne: req.currentUser._id}})
                     return !admin ? value : helpers.error('any.exists')
                 })
-        ),
+        )
+        .messages({
+            'string.email': '{{#label}} không đúng định dạng',
+            'any.exists': '{{#label}} đã tồn tại trong hệ thống'
+        }),
     phone: Joi.string()
         .trim()
         .pattern(VALIDATE_PHONE_REGEX)
@@ -103,7 +125,17 @@ export const updateProfile = Joi.object({
                     const admin = await Admin.findOne({phone: value, _id: {$ne: req.currentUser._id}})
                     return !admin ? value : helpers.error('any.exists')
                 })
-        ),
+        )
+        .messages({
+            'string.pattern.base': '{{#label}} không đúng định dạng',
+            'any.exists': '{{#label}} đã tồn tại trong hệ thống'
+        }),
+    isPtiter: Joi.boolean()
+        .default(false)
+        .label('Sinh viên PTIT')
+        .messages({
+            'boolean.base': 'Trường sinh viên PTIT phải là true hoặc false'
+        }),
     avatar: Joi.object({
         mimetype: Joi.valid('image/jpeg', 'image/png', 'image/svg+xml', 'image/webp')
             .required()
@@ -112,7 +144,11 @@ export const updateProfile = Joi.object({
         .unknown(true)
         .instance(FileUpload)
         .allow('')
-        .label('Ảnh đại diện'),
+        .label('Ảnh đại diện')
+        .messages({
+            'object.instance': '{{#label}} không đúng định dạng',
+            'any.only': '{{#label}} chỉ chấp nhận định dạng jpeg, png, svg hoặc webp'
+        }),
 })
 
 export const changePassword = Joi.object({

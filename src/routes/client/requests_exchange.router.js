@@ -3,6 +3,7 @@ import validate from '@/app/middleware/common/validate'
 import * as exchangeRequest from '../../app/requests/client/req_exchange.request'
 import * as exchangeController from '../../app/controllers/client/reqExchange.controller'
 import * as excMiddleware from '../../app/middleware/common/client/reqExchangeCheckId.middeware'
+import * as ptiterMiddleware from '../../app/middleware/common/client/checkPtiterAccess.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import express, {Router} from 'express'
 
@@ -14,6 +15,7 @@ exchangeRouter.post(
     '/',
     asyncHandler(requireAuthentication),
     asyncHandler(validate(exchangeRequest.createExchangeRequestValidate)),
+    asyncHandler(ptiterMiddleware.checkPtiterAccess),
     asyncHandler(exchangeController.createPost)
 )
 // [GET] : /request_exchange/me  => Lấy ra danh sách mình yêu cầu với ng khác

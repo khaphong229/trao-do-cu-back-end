@@ -325,6 +325,89 @@ export const details = async (id, req) => {
     }
 }
 
+export const filterPtit = async (qs, limit, current, req) => {
+    // Kiểm tra user có phải là PTITer không
+    if (!req.currentUser.isPtiter) {
+        abort(403, 'Bạn không phải sinh viên PTIT nên không thể xem những sản phẩm danh cho sinh viên PTIT')
+    }
+
+    let {filter} = aqp(qs)
+    const {statusPotsId} = filter
+    delete filter.statusPotsId
+    delete filter.current
+    delete filter.pageSize
+    filter.isDeleted = false
+    filter.isPtiterOnly = true // Chỉ lấy bài viết PTIT
+
+    let {q} = filter
+    delete filter.q
+    if (q) {
+        q = q ? {$regex: q, $options: 'i'} : null
+        filter = {
+            ...(q && {$or: [{title: q}, {description: q}]}),
+        }
+        filter.isDeleted = false
+        filter.isPtiterOnly = true
+    }
+
+    let {sort} = aqp(qs)
+    if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
+    if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
+    if (!sort) sort = {created_at: -1}
+
+    const posts = await Post.find({
+        ...filter,
+    })
+        .skip((current - 1) * limit)
+        .limit(limit)
+        .sort(sort)
+        .populate({
+            path: 'category_id',
+            select: 'name',
+        })
+        .populate({
+            path: 'user_id',
+            select: 'name email',
+        })
+
+    const total = await Post.countDocuments({
+        ...filter,
+    })
+
+    return {
+        total,
+        current,
+        limit,
+        posts,
+    }
+}
+
+export const getPostDetail = async (postId, userId) => {
+    const post = await Post.findById(postId)
+        .populate({
+            path: 'category_id',
+            select: 'name',
+        })
+        .populate({
+            path: 'user_id',
+            select: 'name email',
+        })
+
+    if (!post) {
+        abort(404, 'Không tìm thấy bài viết')
+    }
+
+    // Kiểm tra quyền truy cập nếu là bài viết PTIT
+    if (post.isPtiterOnly) {
+        const user = await User.findById(userId)
+        if (!user.isPtiter) {
+            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT')
+        }
+    }
+
+    return post
+}
+
 // Update thêm chưa xong nma đang suy nghĩ
 // const getAllRequestedPostsByUser = async (userId) => {
 // Đã validate đầu vào cho userId

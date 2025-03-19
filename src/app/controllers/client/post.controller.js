@@ -38,3 +38,13 @@ export const detailPost = async (req, res) => {
     const result = await postService.details(req.params.id, req)
     res.jsonify(result)
 }
+
+export const readListPtit = async (req, res) => {
+    const result = await postService.filterPtit(req.query, req.query.limit, req.query.current, req)
+    res.json(result)
+}
+
+export const getPostDetail = async (req, res) => {
+    const result = await postService.getPostDetail(req.params.id, req.currentUser._id)
+    res.json(result)
+}

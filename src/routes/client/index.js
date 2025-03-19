@@ -8,6 +8,7 @@ import notificationRouter from './notification.router'
 import userInterestRouter from './user_interest.router'
 import userInteractionRouter from './user_interaction.router'
 import surveyRouter from './survey.router'
+import ptitRouter from './ptit_posts.router'
 
 function routeClient(app) {
     app.use('/auth', authRouter)
@@ -30,7 +31,7 @@ function routeClient(app) {
 
     app.use('/surveys', surveyRouter)
 
-    app.use('/surveys', surveyRouter)
+    app.use('/ptit-posts', ptitRouter)
 }
 
 export default routeClient

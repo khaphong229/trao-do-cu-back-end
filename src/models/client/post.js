@@ -28,6 +28,10 @@ const Post = createModel(
             enum: ['active', 'inactive'],
             default: 'active',
         },
+        isPtiterOnly: {
+            type: Boolean,
+            default: false
+        },
         itemCode: {
             type: String,
             default: null
