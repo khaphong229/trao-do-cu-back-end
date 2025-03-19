@@ -42,8 +42,11 @@ export async function update(user, {name, email, phone}) {
 }
 
 export async function resetPassword(user, newPassword) {
-    user.password = newPassword
-    await user.save()
+    await User.findOneAndUpdate(
+        { _id: user._id },
+        { $set: { password: newPassword } },
+        { new: true, runValidators: true }
+    )
 }
 
 export async function remove(user) {
