@@ -18,7 +18,7 @@ export const readRoot = async (req, res) => {
     res.jsonify(result)
 }
 
-// [GET] : /post-category   ?
+// [GET] : /post-category?
 export const readRootCategory = async (req, res) => {
     const limit = parseInt(req.query.pageSize)
     const current = parseInt(req.query.current)

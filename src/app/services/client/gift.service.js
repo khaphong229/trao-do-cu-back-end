@@ -25,7 +25,7 @@ export async function create(requestBody) {
 
     // 3. Kiểm tra xem người yêu cầu có trùng với người đăng bài hay không
     if (postIsValid.user_id.toString() === user_req_id.toString()) {
-        return abort(400, 'Bạn không thể gửi yêu cầu cho chính bài post này')
+        return abort(400, 'Bạn không thể gửi yêu cầu cho chính sản phẩm của mình.')
     }
 
     if (existingRequest) {

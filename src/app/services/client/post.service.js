@@ -370,6 +370,27 @@ export const filterPtit = async (qs, limit, current, req) => {
             select: 'name email',
         })
 
+    // Xử lý thêm thông tin isRequested
+    const processedPosts = await Promise.all(
+        posts.map(async (post) => {
+            try {
+                const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+                const request = await requestModel.findOne({
+                    post_id: post._id,
+                    user_req_id: req.currentUser._id,
+                }).lean()
+
+                return {
+                    ...post.toObject(),
+                    isRequested: !!request
+                }
+            } catch (error) {
+                console.log('Error checking isRequested:', error.message)
+                return post
+            }
+        })
+    )
+
     const total = await Post.countDocuments({
         ...filter,
     })
@@ -378,7 +399,7 @@ export const filterPtit = async (qs, limit, current, req) => {
         total,
         current,
         limit,
-        posts,
+        posts: processedPosts,
     }
 }
 
