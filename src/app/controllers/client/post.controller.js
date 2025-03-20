@@ -2,7 +2,7 @@ import * as postService from '../../services/client/post.service'
 
 export async function createPost(req, res) {
     await postService.create(req.body, req)
-    res.status(201).jsonify('Tạo mới bài đăng thành công.')
+    res.status(201).jsonify('Tạo mới bài đăng thành công. Bài đăng của bạn đang chờ admin duyệt.')
 }
 
 export async function createRePost(req, res) {
