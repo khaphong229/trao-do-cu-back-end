@@ -1,5 +1,7 @@
-import mongoose from 'mongoose'
+import mongoose, { Schema } from 'mongoose'
 import createModel from '../base'
+// import { PCOIN } from '../../config'
+import { PCOIN, PCoinHelpers, PCoinMessages } from '@/configs/pcoin-system'
 
 const Post = createModel(
     'Post',
@@ -92,6 +94,24 @@ const Post = createModel(
         approvedAt: {
             type: Date,
             default: null
+        },
+        pcoin_config: {
+            reward_amount: {  // Số P-Coin user nhận được khi post được duyệt
+                type: Number,
+                default: PCOIN.AMOUNTS.DEFAULT_POST_REWARD,
+                validate: {
+                    validator: PCoinHelpers.validatePostReward,
+                    message: PCoinMessages.INVALID_POST_REWARD()
+                }
+            },
+            required_amount: {  // Số P-Coin yêu cầu để tham gia
+                type: Number,
+                default: null,
+                validate: {
+                    validator: PCoinHelpers.validateRequiredAmount,
+                    message: PCoinMessages.INVALID_REQUIRED_AMOUNT()
+                }
+            }
         }
     },
     {}
