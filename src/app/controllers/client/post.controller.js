@@ -40,7 +40,7 @@ export const detailPost = async (req, res) => {
 }
 
 export const readListPtit = async (req, res) => {
-    const result = await postService.filterPtit(req.query, req.query.limit, req.query.current, req)
+    const result = await postService.filterPtit(req.query, req.query.pageSize, req.query.current, req)
     res.json(result)
 }
 

@@ -8,7 +8,7 @@ import {tokenBlocklist} from './auth.service'
 import {TOKEN_TYPE} from '@/configs'
 import * as userInteractionService from './user_interaction.service'
 import UserInterest from '@/models/client/user_interest'
-import { User } from '@/models'
+import {User} from '@/models'
 import mongoose from 'mongoose'
 
 export async function create(requestBody, req) {
@@ -63,8 +63,8 @@ export const filterCategory = async (qs, limit, current, req) => {
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
-    filter.isApproved = true  // Chỉ hiển thị bài đã được duyệt
-    
+    filter.isApproved = true // Chỉ hiển thị bài đã được duyệt
+
     let {q} = filter
     delete filter.q
     if (q) {
@@ -151,27 +151,27 @@ export const filter = async (qs, limit, current, req) => {
         if (user.isSurveyed) {
             // Lấy danh mục quan tâm
             const accountAge = Math.floor((new Date() - user.created_at) / (1000 * 60 * 60 * 24))
-            const userInterests = await UserInterest.findOne({ user_id: userId })
+            const userInterests = await UserInterest.findOne({user_id: userId})
             let categoryIds = []
-            
+
             if (accountAge < 3) {
                 // User mới: chỉ dùng danh mục từ khảo sát
                 if (userInterests) {
-                    categoryIds = userInterests.interests.map(interest => 
-                        new mongoose.Types.ObjectId(interest.category_id)
+                    categoryIds = userInterests.interests.map(
+                        (interest) => new mongoose.Types.ObjectId(interest.category_id)
                     )
                 }
             } else {
                 // User cũ: kết hợp cả tương tác
                 let registeredCategories = []
                 if (userInterests) {
-                    registeredCategories = userInterests.interests.map(interest => 
-                        new mongoose.Types.ObjectId(interest.category_id)
+                    registeredCategories = userInterests.interests.map(
+                        (interest) => new mongoose.Types.ObjectId(interest.category_id)
                     )
                 }
                 const interactionCategories = await userInteractionService.getTopCategoriesForUser(userId, 2)
-                const interactionCategoryIds = interactionCategories.map(cat => 
-                    new mongoose.Types.ObjectId(cat._id)
+                const interactionCategoryIds = interactionCategories.map(
+                    (cat) => new mongoose.Types.ObjectId(cat._id)
                 )
                 categoryIds = [...new Set([...registeredCategories, ...interactionCategoryIds])]
             }
@@ -179,16 +179,18 @@ export const filter = async (qs, limit, current, req) => {
             // Query với ưu tiên nhưng không lọc bỏ bài viết nào
             data = await Post.find(filter)
                 .lean()
-                .then(posts => {
+                .then((posts) => {
                     // Đánh dấu bài viết thuộc category ưu tiên
-                    return posts.map(post => ({
+                    return posts.map((post) => ({
                         ...post,
-                        isPriority: categoryIds.some(catId => 
-                            catId.toString() === post.category_id.toString()
-                        ) ? 1 : 0
+                        isPriority: categoryIds.some(
+                            (catId) => catId.toString() === post.category_id.toString()
+                        )
+                            ? 1
+                            : 0,
                     }))
                 })
-                .then(posts => {
+                .then((posts) => {
                     // Sắp xếp: ưu tiên trước, sau đó theo sort condition
                     return posts.sort((a, b) => {
                         if (a.isPriority !== b.isPriority) {
@@ -202,15 +204,15 @@ export const filter = async (qs, limit, current, req) => {
                         return 0
                     })
                 })
-                .then(posts => {
+                .then((posts) => {
                     // Áp dụng phân trang
                     return posts.slice((current - 1) * limit, current * limit)
                 })
 
             // Populate user và category data
             data = await Post.populate(data, [
-                { path: 'user_id', select: '_id name email avatar phone address status' },
-                { path: 'category_id', select: '_id name' }
+                {path: 'user_id', select: '_id name email avatar phone address status'},
+                {path: 'category_id', select: '_id name'},
             ])
         } else {
             // User chưa khảo sát - query đơn giản
@@ -244,14 +246,16 @@ export const filter = async (qs, limit, current, req) => {
                         if (allowedToken) {
                             const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
                             const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-                            const request = await requestModel.findOne({
-                                post_id: post._id,
-                                user_req_id: user_id,
-                            }).lean()
+                            const request = await requestModel
+                                .findOne({
+                                    post_id: post._id,
+                                    user_req_id: user_id,
+                                })
+                                .lean()
 
                             return {
                                 ...post,
-                                isRequested: !!request
+                                isRequested: !!request,
                             }
                         }
                     } catch (error) {
@@ -337,6 +341,7 @@ export const filterPtit = async (qs, limit, current, req) => {
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
+    filter.isApproved = true
     filter.isPtiterOnly = true // Chỉ lấy bài viết PTIT
 
     let {q} = filter
@@ -375,14 +380,16 @@ export const filterPtit = async (qs, limit, current, req) => {
         posts.map(async (post) => {
             try {
                 const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-                const request = await requestModel.findOne({
-                    post_id: post._id,
-                    user_req_id: req.currentUser._id,
-                }).lean()
+                const request = await requestModel
+                    .findOne({
+                        post_id: post._id,
+                        user_req_id: req.currentUser._id,
+                    })
+                    .lean()
 
                 return {
                     ...post.toObject(),
-                    isRequested: !!request
+                    isRequested: !!request,
                 }
             } catch (error) {
                 console.log('Error checking isRequested:', error.message)
