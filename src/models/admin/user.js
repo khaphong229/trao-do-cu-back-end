@@ -52,6 +52,16 @@ const infoFulledUser = {
         type: Boolean,
         default: false,
     },
+    pcoin_balance: {
+        total: {
+            type: Number,
+            default: 0
+        },
+        locked: {
+            type: Number,
+            default: 0
+        }
+    }
 }
 
 const User = createModel('User', 'users', infoFulledUser, {

@@ -359,13 +359,11 @@ export const filterPtit = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
+    console.log('filterPtit query:', {filter, current, limit, sort})
 
     const posts = await Post.find({
         ...filter,
     })
-        .skip((current - 1) * limit)
-        .limit(limit)
-        .sort(sort)
         .populate({
             path: 'category_id',
             select: 'name',
@@ -374,6 +372,9 @@ export const filterPtit = async (qs, limit, current, req) => {
             path: 'user_id',
             select: 'name email',
         })
+        .skip((current - 1) * limit)
+        .limit(limit)
+        .sort(sort)
 
     // Xử lý thêm thông tin isRequested
     const processedPosts = await Promise.all(
@@ -401,12 +402,13 @@ export const filterPtit = async (qs, limit, current, req) => {
     const total = await Post.countDocuments({
         ...filter,
     })
+    console.log('filterPtit result:', {total, dataLength: posts.length})
 
     return {
         total,
         current,
         limit,
-        posts: processedPosts,
+        data: processedPosts,
     }
 }
 
