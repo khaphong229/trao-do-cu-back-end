@@ -370,7 +370,7 @@ export const filterPtit = async (qs, limit, current, req) => {
         })
         .populate({
             path: 'user_id',
-            select: 'name email',
+            select: 'name email avatar',
         })
         .skip((current - 1) * limit)
         .limit(limit)
