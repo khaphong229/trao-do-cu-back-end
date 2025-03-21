@@ -32,6 +32,24 @@ export async function create(requestBody) {
         return abort(400, 'Bạn đã gửi yêu cầu cho bài đăng này!')
     }
 
+    // Kiểm tra và cập nhật số lượt yêu cầu
+    if (postIsValid.display_request_count === 0) {
+        // Lần đầu có request: random 3-7 + 1
+        const randomRequests = Math.floor(Math.random() * 5) + 3
+        await Post.findByIdAndUpdate(post_id, {
+            display_request_count: randomRequests + 1,
+            actual_request_count: 1
+        })
+    } else {
+        // Có request rồi: tăng cả 2 số
+        await Post.findByIdAndUpdate(post_id, {
+            $inc: { 
+                display_request_count: 1,
+                actual_request_count: 1 
+            }
+        })
+    }
+
     // 4. Tạo mới yêu cầu nhận đồ (RequestsReceive)
     const newRequest = new RequestsReceive({
         post_id,
@@ -266,7 +284,9 @@ export const remove = async (_id) => {
     return request
 }
 
-export const getAllRequestsByUser = async (userId) => {
+
+// Hàm xử lí lấy ra nhận xét của user
+export const getAllDisplayRequestsByUser = async (userId) => {
     if (!userId) {
         abort(400, 'ID người dùng không được để trống')
     }
@@ -309,32 +329,30 @@ export const getAllRequestsByUser = async (userId) => {
     }
 }
 
-export const getRequestCountByPost = async (postId) => {
-    if (!postId) {
-        abort(400, 'ID bài viết không được để trống')
-    }
-
-    // Kiểm tra bài viết có tồn tại và có phải loại gift không
-    const post = await Post.findOne({ _id: postId, type: 'gift' })
+export const getRequestersCount = async (postId) => {
+    const post = await Post.findById(postId)
     if (!post) {
-        abort(404, 'Không tìm thấy bài viết hoặc bài viết không phải loại tặng quà')
+        abort(404, 'Không tìm thấy bài viết')
     }
 
-    // Đếm số lượng yêu cầu cho bài viết này
-    const count = await RequestsReceive.countDocuments({
-        post_id: postId,
-        isDeleted: false
-    })
+    // Nếu chỉ có 1 người yêu cầu (người dùng hiện tại), fake thêm 1 người nữa
+    const othersCount = post.actual_request_count <= 1 ? 1 : post.actual_request_count - 1
+    
+    return {
+        others_count: othersCount,
+        message: `Bạn và ${othersCount} người khác cũng đang yêu cầu món đồ này`
+    }
+}
 
-    // Nếu số lượng < 5, thêm số random từ 5-10
-    let total = count
-    if (total < 5) {
-        const additionalRequests = Math.floor(Math.random() * 6) + 5
-        total += additionalRequests
+// Hàm xử lí lấy ra số lượt yêu cầu của bài viết để hiển thị trên mocup sau khi người dùng đã request
+export const getRequestCountByPost = async (postId) => {
+    const post = await Post.findById(postId)
+    if (!post) {
+        abort(404, 'Không tìm thấy bài viết')
     }
 
     return {
-        total,
-        actual_total: count
+        display_request_count: post.display_request_count,
+        actual_total: post.actual_request_count
     }
 }

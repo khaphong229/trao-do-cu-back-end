@@ -41,4 +41,18 @@ exchangeRouter.get('/countFavorites', asyncHandler(requireAuthentication), async
 // [GET] : /request_exchange/all-requests => Lấy tất cả yêu cầu của các bài đăng của người dùng
 exchangeRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(exchangeController.getAllRequests))
 
+// [GET] : /request_exchange/requesters-count/:postId => Lấy số lượt yêu cầu hiển thị
+exchangeRouter.get(
+    '/requesters-count/:postId', 
+    asyncHandler(requireAuthentication), 
+    asyncHandler(exchangeController.getRequestersCount)
+)
+
+// // [GET] : /request_exchange/others-count/:postId => Lấy số người cùng yêu cầu
+// exchangeRouter.get(
+//     '/others-count/:postId',
+//     asyncHandler(requireAuthentication),
+//     asyncHandler(exchangeController.getOthersCount)
+// )
+
 export default exchangeRouter

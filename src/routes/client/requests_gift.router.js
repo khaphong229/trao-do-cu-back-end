@@ -35,10 +35,14 @@ giftRouter.delete(
     asyncHandler(giftController.deleted)
 )
 
-// [GET] : /request_gift/countFavorites
-giftRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(giftController.countFavorites))
+// // [GET] : /request_gift/countFavorites
+// giftRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(giftController.countFavorites))
 
-// [GET] : /request_gift/all-requests => Lấy tất cả yêu cầu của các bài đăng của người dùng
+
+// [GET] : /request_gift/all-requests => xử lí lấy nhận xét của user
 giftRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(giftController.getAllRequests))
+
+// [GET] : /request_gift/requesters-count/:postId
+giftRouter.get('/requesters-count/:postId', asyncHandler(requireAuthentication), asyncHandler(giftController.getRequestersCount))
 
 export default giftRouter

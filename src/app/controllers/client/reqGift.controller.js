@@ -30,14 +30,21 @@ export const deleted = async (req, res) => {
     res.status(201).jsonify('Từ chối người dùng thành công')
 }
 
-export const countFavorites = async (req, res) => {
-    const result = await giftService.getRequestCountByPost(req.query.postId)
-    res.jsonify(result)
-}
+// export const countFavorites = async (req, res) => {
+//     const result = await giftService.getRequestCountByPost(req.query.postId)
+//     res.jsonify(result)
+// }
 
+
+// xử lí lấy nhận xét của userr
 export const getAllRequests = async (req, res) => {
     const userId = req.body.userId
-    const result = await giftService.getAllRequestsByUser(userId)
+    const result = await giftService.getAllDisplayRequestsByUser(userId)
     res.json(result)
+}
+
+export const getRequestersCount = async (req, res) => {
+    const result = await giftService.getRequestCountByPost(req.params.postId)
+    res.jsonify(result)
 }
 

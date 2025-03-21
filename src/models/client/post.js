@@ -112,6 +112,14 @@ const Post = createModel(
                     message: PCoinMessages.INVALID_REQUIRED_AMOUNT()
                 }
             }
+        },
+        display_request_count: {  // Số hiển thị (đã cộng random)
+            type: Number,
+            default: 0
+        },
+        actual_request_count: {   // Số lượt yêu cầu thực tế
+            type: Number,
+            default: 0
         }
     },
     {}

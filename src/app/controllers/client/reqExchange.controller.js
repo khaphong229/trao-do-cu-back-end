@@ -38,4 +38,14 @@ export const getAllRequests = async (req, res) => {
     const userId = req.currentUser._id
     const result = await exchangeService.getAllRequestsByUser(userId)
     res.json(result)
+}
+
+export const getRequestersCount = async (req, res) => {
+    const result = await exchangeService.getRequestCountByPost(req.params.postId)
+    res.jsonify(result)
+}
+
+export const getOthersCount = async (req, res) => {
+    const result = await exchangeService.getRequestersCount(req.params.postId) 
+    res.jsonify(result)
 } 
