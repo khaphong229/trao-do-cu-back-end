@@ -1,6 +1,7 @@
 import {User} from '@/models'
 import {FileUpload} from '@/utils/classes'
 import {LINK_STATIC_URL} from '@/configs'
+import { abort } from '@/utils/helpers'
 
 export async function create(requestBody) {
     const user = new User(requestBody)
@@ -54,4 +55,72 @@ export async function remove(user) {
         FileUpload.remove(user.avatar)
     }
     await User.deleteOne({_id: user._id})
+}
+
+export const deleteInvalidUsers = async () => {
+    try {
+        // Đầu tiên, đếm số lượng người dùng phù hợp với tiêu chí xóa
+        const matchingCount = await User.countDocuments({
+            $or: [
+                { phone: null },
+                { phone: '' },
+                { isSurveyed: false }
+            ]
+        })
+        
+        console.log(`Tìm thấy ${matchingCount} người dùng phù hợp với tiêu chí xóa`)
+        
+        // Nếu có người dùng phù hợp, tiến hành xóa
+        if (matchingCount > 0) {
+            // Thiết lập thời gian chờ cao hơn cho thao tác này
+            const timeoutMS = 120000 // 2 phút
+            
+            // Sử dụng cách tiếp cận có mục tiêu hơn - xóa theo từng đợt nhỏ
+            // Bắt đầu với người dùng có số điện thoại null
+            const result1 = await User.deleteMany(
+                { phone: null },
+                { maxTimeMS: timeoutMS }
+            )
+            
+            // Sau đó là người dùng có chuỗi số điện thoại rỗng
+            const result2 = await User.deleteMany(
+                { phone: '' },
+                { maxTimeMS: timeoutMS }
+            )
+            
+            // Sau đó là người dùng chưa hoàn thành khảo sát
+            const result3 = await User.deleteMany(
+                { isSurveyed: false },
+                { maxTimeMS: timeoutMS }
+            )
+            
+            const totalDeleted = (result1.deletedCount || 0) + 
+                               (result2.deletedCount || 0) + 
+                               (result3.deletedCount || 0)
+            
+            return {
+                message: `Đã xóa thành công ${totalDeleted} tài khoản không hợp lệ`,
+                deletedCount: totalDeleted,
+                details: {
+                    nullPhone: result1.deletedCount || 0,
+                    emptyPhone: result2.deletedCount || 0,
+                    notSurveyed: result3.deletedCount || 0
+                }
+            }
+        } else {
+            return {
+                message: 'Không tìm thấy tài khoản không hợp lệ để xóa',
+                deletedCount: 0
+            }
+        }
+    } catch (error) {
+        console.error('Chi tiết lỗi:', error)
+        
+        // Thông báo lỗi cụ thể hơn cho trường hợp timeout
+        if (error.name === 'MongoNetworkTimeoutError') {
+            abort(500, 'Thao tác xóa bị timeout. Vui lòng thử lại với ít bản ghi hơn hoặc tăng thời gian timeout.')
+        } else {
+            abort(500, 'Có lỗi khi xóa user: ' + error.message)
+        }
+    }
 }

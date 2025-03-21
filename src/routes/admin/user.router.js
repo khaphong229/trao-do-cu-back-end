@@ -37,4 +37,11 @@ userRouter.patch(
     asyncHandler(userController.resetPassword)
 )
 
+// [DELETE] /remove-invalid => Xóa users không hợp lệ
+userRouter.delete(
+    '/remove-invalid/spam',
+    asyncHandler(requireAuthentication),
+    asyncHandler(userController.removeInvalidUsers)
+) 
+
 export default userRouter

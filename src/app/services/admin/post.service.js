@@ -2,6 +2,7 @@ import aqp from 'api-query-params'
 import { abort } from '@/utils/helpers'
 import Post from '@/models/client/post'
 import { generateItemCode } from '../client/item-code.service'
+import slugify from 'slugify'
 
 export const filter = async (qs, limit, current) => {
     const {filter} = aqp(qs)
@@ -72,3 +73,73 @@ export const updatePostApproval = async (postId, { isApproved, reason }) => {
 
     return post
 } 
+
+
+export const updateAllSlugs = async () => {
+    const posts = await Post.find({ slug: { $exists: false } })
+    
+    let updatedCount = 0
+    for (const post of posts) {
+        // Khi lưu lại, thư viện sẽ tự động tạo slug
+        await post.save()
+        updatedCount++
+    }
+    
+    return { 
+        message: `Đã cập nhật slug cho ${updatedCount} bài viết`,
+        updatedCount
+    }
+}
+
+export const generateSlugsForExistingPosts = async () => {
+    try {
+        // Tìm tất cả bài viết chưa có slug hoặc slug rỗng
+        const posts = await Post.find({
+            $or: [
+                { slug: { $exists: false } },
+                { slug: null },
+                { slug: '' }
+            ]
+        })
+        
+        if (!posts.length) {
+            return { message: 'Không có bài viết nào cần cập nhật slug', count: 0 }
+        }
+        
+        let updatedCount = 0
+        
+        // Cập nhật slug cho từng bài viết
+        for (const post of posts) {
+            // Tạo slug từ title
+            const baseSlug = slugify(post.title, {
+                lower: true,
+                strict: true,
+                locale: 'vi'
+            })
+            
+            let finalSlug = baseSlug
+            let counter = 1
+            
+            // Kiểm tra slug tồn tại
+            while (await Post.findOne({ 
+                slug: finalSlug,
+                _id: { $ne: post._id }
+            })) {
+                finalSlug = `${baseSlug}-${counter}`
+                counter++
+            }
+            
+            // Cập nhật slug
+            await Post.findByIdAndUpdate(post._id, { slug: finalSlug })
+            updatedCount++
+        }
+        
+        return {
+            message: 'Đã cập nhật slug cho các bài viết thành công',
+            count: updatedCount
+        }
+    } catch (error) {
+        abort(500, 'Có lỗi khi cập nhật slug: ' + error.message)
+    }
+}
+

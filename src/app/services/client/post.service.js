@@ -10,6 +10,7 @@ import * as userInteractionService from './user_interaction.service'
 import UserInterest from '@/models/client/user_interest'
 import {User} from '@/models'
 import mongoose from 'mongoose'
+import slugify from 'slugify'
 
 export async function create(requestBody, req) {
     const user_id = req.currentUser._id
@@ -63,6 +64,7 @@ export const filterCategory = async (qs, limit, current, req) => {
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
+    filter.isPtiterOnly = false
     filter.isApproved = true // Chỉ hiển thị bài đã được duyệt
 
     let {q} = filter
@@ -453,3 +455,99 @@ export const getPostDetail = async (postId, userId) => {
 //         requests: requests
 //     }
 // }
+
+export const getPostBySlug = async (slug, userId) => {
+    const post = await Post.findOne({ slug })
+        .populate({
+            path: 'category_id',
+            select: 'name',
+        })
+        .populate({
+            path: 'user_id',
+            select: 'name email',
+        })
+
+    if (!post) {
+        abort(404, 'Không tìm thấy bài viết')
+    }
+
+    // Kiểm tra quyền truy cập nếu là bài viết PTIT
+    if (post.isPtiterOnly) {
+        const user = await User.findById(userId)
+        if (!user?.isPtiter) {
+            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT')
+        }
+    }
+    // Kiểm tra xem người dùng đã yêu cầu bài đăng này chưa
+    if (userId) {
+        // Chọn model phù hợp dựa trên loại bài đăng
+        const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+        
+        // Tìm yêu cầu của người dùng hiện tại
+        const request = await requestModel.findOne({
+            post_id: post._id,
+            user_req_id: userId,
+        })
+
+        // Thêm trường isRequested vào kết quả
+        return {
+            ...post.toObject(),
+            isRequested: !!request,
+        }
+    }
+
+    return post
+}
+
+export const generateSlugsForExistingPosts = async () => {
+    try {
+        // Tìm tất cả bài viết chưa có slug hoặc slug rỗng
+        const posts = await Post.find({
+            $or: [
+                { slug: { $exists: false } },
+                { slug: null },
+                { slug: '' }
+            ]
+        })
+        
+        if (!posts.length) {
+            return { message: 'Không có bài viết nào cần cập nhật slug', count: 0 }
+        }
+        
+        let updatedCount = 0
+        
+        // Cập nhật slug cho từng bài viết
+        for (const post of posts) {
+            // Tạo slug từ title
+            const baseSlug = slugify(post.title, {
+                lower: true,
+                strict: true,
+                locale: 'vi'
+            })
+            
+            let finalSlug = baseSlug
+            let counter = 1
+            
+            // Kiểm tra slug tồn tại
+            while (await Post.findOne({ 
+                slug: finalSlug,
+                _id: { $ne: post._id }
+            })) {
+                finalSlug = `${baseSlug}-${counter}`
+                counter++
+            }
+            
+            // Cập nhật slug
+            await Post.findByIdAndUpdate(post._id, { slug: finalSlug })
+            updatedCount++
+        }
+        
+        return {
+            message: 'Đã cập nhật slug cho các bài viết thành công',
+            count: updatedCount
+        }
+    } catch (error) {
+        abort(500, 'Có lỗi khi cập nhật slug: ' + error.message)
+    }
+}
+
