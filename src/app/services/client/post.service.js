@@ -126,6 +126,7 @@ export const filter = async (qs, limit, current, req) => {
     // Thêm điều kiện cơ bản
     filter.isDeleted = false
     filter.isApproved = true
+    filter.isPtiterOnly = false
     filter.status = 'active'
 
     if (q) {
@@ -359,7 +360,7 @@ export const filterPtit = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    console.log('filterPtit query:', {filter, current, limit, sort})
+    // console.log('filterPtit query:', {filter, current, limit, sort})
 
     const posts = await Post.find({
         ...filter,
