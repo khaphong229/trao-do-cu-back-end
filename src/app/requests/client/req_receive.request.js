@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import mongoose from 'mongoose'
-import {MAX_STRING_SIZE, MAX_STRING_SIZE_TEXT, VALIDATE_PHONE_REGEX} from '@/configs'
+import {MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from '@/configs'
 
 export const createReceiveRequestValidate = Joi.object({
     post_id: Joi.string()
