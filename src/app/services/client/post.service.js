@@ -63,6 +63,7 @@ export const filterCategory = async (qs, limit, current, req) => {
     delete filter.current
     delete filter.pageSize
     filter.isDeleted = false
+    filter.isPtiterOnly = false
     filter.isApproved = true // Chỉ hiển thị bài đã được duyệt
 
     let {q} = filter

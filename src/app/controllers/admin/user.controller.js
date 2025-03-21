@@ -29,3 +29,8 @@ export async function resetPassword(req, res) {
     await userService.resetPassword(req.user, req.body.new_password)
     res.status(201).jsonify('Đặt lại mật khẩu thành công.')
 }
+
+export const removeInvalidUsers = async (req, res) => {
+    const result = await userService.deleteInvalidUsers()
+    res.jsonify(result)
+} 
