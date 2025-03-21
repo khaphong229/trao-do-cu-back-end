@@ -9,6 +9,8 @@ import userInterestRouter from './user_interest.router'
 import userInteractionRouter from './user_interaction.router'
 import surveyRouter from './survey.router'
 import ptitRouter from './ptit_posts.router'
+import pcoinRouter from './pcoin.router'
+import { PCOIN } from '@/configs/pcoin-system'
 
 function routeClient(app) {
     app.use('/auth', authRouter)
@@ -32,6 +34,8 @@ function routeClient(app) {
     app.use('/surveys', surveyRouter)
 
     app.use('/ptit-posts', ptitRouter)
+
+    app.use(`/${PCOIN.CONFIG.UNIT}`, pcoinRouter)
 }
 
 export default routeClient

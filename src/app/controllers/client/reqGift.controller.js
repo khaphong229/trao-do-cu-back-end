@@ -36,7 +36,7 @@ export const countFavorites = async (req, res) => {
 }
 
 export const getAllRequests = async (req, res) => {
-    const userId = req.currentUser._id
+    const userId = req.body.userId
     const result = await giftService.getAllRequestsByUser(userId)
     res.json(result)
 }

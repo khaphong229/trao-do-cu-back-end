@@ -280,33 +280,32 @@ export const getAllRequestsByUser = async (userId) => {
     if (!userPosts.length) {
         return {
             total: 0,
-            requests: []
+            
         }
     }
 
-    // 2. Lấy tất cả yêu cầu nhận quà cho các bài đăng này
-    const requests = await RequestsReceive.find({
+    // 2. Lấy tổng số requests
+    const total = await RequestsReceive.countDocuments({
         post_id: { $in: userPosts.map(post => post._id) },
     })
-        .populate({
-            path: 'post_id',
-            select: 'title type status'
-        })
-        .populate('user_req_id', 'name email')
-        .sort({ created_at: -1 })
 
-    // 3. Tính toán total mới
-    const total = requests.length
-    // if (total < 5) {
-    //     // Nếu total < 5, thêm số random từ 5-10
-    //     const additionalRequests = Math.floor(Math.random() * 6) + 5 // Random từ 5-10
-    //     total += additionalRequests
-    // }
+    // // 3. Lấy requests có phân trang
+    // const requests = await RequestsReceive.find({
+    //     post_id: { $in: userPosts.map(post => post._id) },
+    // })
+    //     .populate({
+    //         path: 'post_id',
+    //         select: 'title type status'
+    //     })
+    //     .populate('user_req_id', 'name email')
+    //     .sort({ created_at: -1 })
+    //     .skip((page - 1) * limit)
+    //     .limit(limit)
 
     return {
         total,
-        // actual_total: requests.length, // Giữ lại số thật để tham khảo
-        requests: requests
+        
+      
     }
 }
 
