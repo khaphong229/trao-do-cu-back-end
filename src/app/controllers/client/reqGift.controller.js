@@ -35,10 +35,9 @@ export const deleted = async (req, res) => {
 //     res.jsonify(result)
 // }
 
-
 // xử lí lấy nhận xét của userr
 export const getAllRequests = async (req, res) => {
-    const userId = req.body.userId
+    const userId = req.query.userId
     const result = await giftService.getAllDisplayRequestsByUser(userId)
     res.json(result)
 }
@@ -47,4 +46,3 @@ export const getRequestersCount = async (req, res) => {
     const result = await giftService.getRequestCountByPost(req.params.postId)
     res.jsonify(result)
 }
-
