@@ -6,6 +6,7 @@ import * as giftMiddleware from '../../app/middleware/common/client/reqReceiveCh
 import * as ptiterMiddleware from '../../app/middleware/common/client/checkPtiterAccess.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import {Router} from 'express'
+// import { verifyRecaptcha } from '@/app/middleware/common/recaptcha.middleware'
 
 const giftRouter = Router()
 
@@ -14,6 +15,7 @@ giftRouter.post(
     '/',
     asyncHandler(requireAuthentication),
     asyncHandler(validate(giftRequest.createReceiveRequestValidate)),
+    // asyncHandler(verifyRecaptcha),
     asyncHandler(ptiterMiddleware.checkPtiterAccess),
     asyncHandler(giftController.createPost)
 )
