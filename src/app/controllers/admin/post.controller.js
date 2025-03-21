@@ -12,3 +12,9 @@ export const updateApproval = async (req, res) => {
     const result = await postService.updatePostApproval(id, req.body)
     res.jsonify(result, 'Cập nhật trạng thái duyệt bài viết thành công')
 } 
+
+// Thêm controller để cập nhật slug cho tất cả bài viết (chỉ admin mới được dùng)
+export const updateAllSlugs = async (req, res) => {
+    const result = await postService.generateSlugsForExistingPosts()
+    res.jsonify(result)
+}

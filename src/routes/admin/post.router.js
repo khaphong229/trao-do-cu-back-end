@@ -23,4 +23,9 @@ postRouter.patch(
     asyncHandler(postController.updateApproval)
 )
 
+
+postRouter.post('/update-all-slugs', 
+    asyncHandler(requireAuthentication),
+    asyncHandler(postController.updateAllSlugs))
+
 export default postRouter

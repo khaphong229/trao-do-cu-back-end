@@ -50,3 +50,13 @@ export const getPostDetail = async (req, res) => {
     const result = await postService.getPostDetail(req.params.id, req.currentUser._id)
     res.json(result)
 }
+
+// Thêm hàm mới để lấy bài viết theo slug
+export const getPostBySlug = async (req, res) => {
+    const { slug } = req.params
+    const userId = req.currentUser?._id
+    // console.log(userId)
+    const result = await postService.getPostBySlug(slug, userId)
+    res.jsonify(result)
+}
+
