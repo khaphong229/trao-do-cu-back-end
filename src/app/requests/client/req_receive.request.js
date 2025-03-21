@@ -1,6 +1,6 @@
 import Joi from 'joi'
 import mongoose from 'mongoose'
-import {MAX_STRING_SIZE, VALIDATE_PHONE_REGEX} from '@/configs'
+import {MAX_STRING_SIZE, MAX_STRING_SIZE_TEXT, VALIDATE_PHONE_REGEX} from '@/configs'
 
 export const createReceiveRequestValidate = Joi.object({
     post_id: Joi.string()
@@ -48,6 +48,11 @@ export const createReceiveRequestValidate = Joi.object({
         .optional()
         .default('pending')
         .label('Trạng thái yêu cầu'),
+
+    recaptchaToken: Joi.string().required().messages({
+        'string.empty': 'Vui lòng xác nhận bạn không phải là robot',
+        'any.required': 'Vui lòng xác nhận bạn không phải là robot',
+    }),
 })
     .custom((obj, helpers) => {
         const hasPhone = !!obj.contact_phone

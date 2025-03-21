@@ -6,6 +6,7 @@ import * as excMiddleware from '../../app/middleware/common/client/reqExchangeCh
 import * as ptiterMiddleware from '../../app/middleware/common/client/checkPtiterAccess.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import express, {Router} from 'express'
+// import { verifyRecaptcha } from '@/app/middleware/common/recaptcha.middleware'
 
 
 const exchangeRouter = Router()
@@ -15,6 +16,7 @@ exchangeRouter.post(
     '/',
     asyncHandler(requireAuthentication),
     asyncHandler(validate(exchangeRequest.createExchangeRequestValidate)),
+    // asyncHandler(verifyRecaptcha),
     asyncHandler(ptiterMiddleware.checkPtiterAccess),
     asyncHandler(exchangeController.createPost)
 )

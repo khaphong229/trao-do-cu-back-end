@@ -11,6 +11,7 @@ import surveyRouter from './survey.router'
 import ptitRouter from './ptit_posts.router'
 import pcoinRouter from './pcoin.router'
 import { PCOIN } from '@/configs/pcoin-system'
+import recaptchaRouter from './recaptcha.router'
 function routeClient(app) {
     app.use('/auth', authRouter)
 
@@ -35,6 +36,8 @@ function routeClient(app) {
     app.use('/ptit-posts', ptitRouter)
 
     app.use(`/${PCOIN.CONFIG.UNIT}`, pcoinRouter)
+
+    app.use('/recaptcha', recaptchaRouter)
 
 }
 

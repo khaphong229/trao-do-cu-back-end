@@ -78,6 +78,10 @@ export const register = Joi.object({
     isPtiter: Joi.boolean()
         .default(false)
         .label('Sinh viên PTIT'),
+    recaptchaToken: Joi.string().required().messages({
+        'string.empty': 'Vui lòng xác nhận bạn không phải là robot',
+        'any.required': 'Vui lòng xác nhận bạn không phải là robot',
+    }),
 })
 
 

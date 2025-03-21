@@ -6,6 +6,7 @@ import * as authRequest from '../../app/requests/client/auth.request'
 import * as authController from '../../app/controllers/client/auth.controller'
 import {asyncHandler} from '@/utils/helpers'
 import passport from 'passport'
+import { verifyRecaptcha } from '@/app/middleware/common/recaptcha.middleware'
 
 const authRouter = Router()
 
@@ -14,6 +15,7 @@ authRouter.post('/login', asyncHandler(validate(authRequest.login)), asyncHandle
 authRouter.post(
     '/register',
     asyncHandler(validate(authRequest.register)),
+    asyncHandler(verifyRecaptcha),
     asyncHandler(authController.register)
 )
 
