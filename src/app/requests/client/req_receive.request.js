@@ -49,10 +49,10 @@ export const createReceiveRequestValidate = Joi.object({
         .default('pending')
         .label('Trạng thái yêu cầu'),
 
-    recaptchaToken: Joi.string().required().messages({
-        'string.empty': 'Vui lòng xác nhận bạn không phải là robot',
-        'any.required': 'Vui lòng xác nhận bạn không phải là robot',
-    }),
+    // recaptchaToken: Joi.string().required().messages({
+    //     'string.empty': 'Vui lòng xác nhận bạn không phải là robot',
+    //     'any.required': 'Vui lòng xác nhận bạn không phải là robot',
+    // }),
 })
     .custom((obj, helpers) => {
         const hasPhone = !!obj.contact_phone
