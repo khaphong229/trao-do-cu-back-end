@@ -464,7 +464,7 @@ export const getPostBySlug = async (slug, userId) => {
         })
         .populate({
             path: 'user_id',
-            select: 'name email',
+            select: 'name email avatar',
         })
 
     if (!post) {

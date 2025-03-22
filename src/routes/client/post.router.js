@@ -30,7 +30,7 @@ postRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(postCont
 // // [GET] : /posts/id
 // postRouter.get('/:id', asyncHandler(postMiddleware.checkId), asyncHandler(postController.detailPost))
 
-// [GET] : /posts/id
+// [GET] : /posts/:slug
 postRouter.get('/:slug', asyncHandler(requireAuthentication), asyncHandler(postMiddleware.checkSlug), asyncHandler(postController.getPostBySlug))
 
 
