@@ -11,7 +11,7 @@ export const createExchangeRequestValidate = Joi.object({
             return value
         })
         .required()
-        .label('ID bài post'),
+        .label('ID bài đăng'),
 
     user_req_id: Joi.string()
         .custom((value, helpers) => {
@@ -23,14 +23,13 @@ export const createExchangeRequestValidate = Joi.object({
         .required()
         .label('ID người yêu cầu'),
 
-    title: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Tiêu đề yêu cầu trao đổi'),
+    title: Joi.string().trim().max(MAX_STRING_SIZE).required().label('Tiêu đề sản phẩm trao đổi'),
 
     description: Joi.string()
         .trim()
         .max(MAX_STRING_SIZE_TEXT)
         .optional()
-        .allow('')
-        .label('Mô tả yêu cầu trao đổi'),
+        .label('Mô tả sản phẩm trao đổi'),
 
     image_url: Joi.array()
         .items(Joi.string())
@@ -43,7 +42,7 @@ export const createExchangeRequestValidate = Joi.object({
             'array.base': 'Vui lòng tải lên ảnh',
             'any.required': 'Vui lòng tải lên ảnh'
         })
-        .label('Đường dẫn ảnh'),
+        .label('Đường dẫn ảnh sản phẩm trao đổi'),
 
     contact_phone: Joi.string()
         .trim()
@@ -60,7 +59,7 @@ export const createExchangeRequestValidate = Joi.object({
         .optional()
         .default({}),
 
-    contact_address: Joi.string().trim().max(MAX_STRING_SIZE).optional().label('Địa chỉ liên hệ'),
+    contact_address: Joi.string().trim().max(MAX_STRING_SIZE).allow('').optional().label('Địa chỉ liên hệ'),
 
     status: Joi.string()
         .valid('pending', 'accepted', 'rejected')

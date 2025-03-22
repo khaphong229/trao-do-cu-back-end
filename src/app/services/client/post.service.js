@@ -11,10 +11,26 @@ import UserInterest from '@/models/client/user_interest'
 import {User} from '@/models'
 import mongoose from 'mongoose'
 import slugify from 'slugify'
+import { PCOIN } from '@/configs/pcoin-system'
 
 export async function create(requestBody, req) {
     const user_id = req.currentUser._id
     requestBody.user_id = user_id
+    
+    // Xử lý cấu hình P-Coin từ các trường riêng lẻ
+    const rewardAmount = requestBody.rewardAmount || PCOIN.AMOUNTS.DEFAULT_POST_REWARD
+    const requiredAmount = requestBody.requiredAmount || PCOIN.AMOUNTS.DEFAULT_REQUEST_COST
+    
+    // Tạo đối tượng pcoin_config
+    requestBody.pcoin_config = {
+        reward_amount: Math.min(Math.max(rewardAmount, PCOIN.AMOUNTS.MIN_POST_REWARD), PCOIN.AMOUNTS.MAX_POST_REWARD),
+        required_amount: Math.min(Math.max(requiredAmount, PCOIN.AMOUNTS.MIN_REQUIRED), PCOIN.AMOUNTS.MAX_REQUEST_COST)
+    }
+    
+    // Xóa các trường riêng lẻ để tránh lưu trùng
+    delete requestBody.rewardAmount
+    delete requestBody.requiredAmount
+    
     const data = new Post(requestBody)
     await data.save()
     return data

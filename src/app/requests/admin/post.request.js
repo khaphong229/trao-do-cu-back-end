@@ -26,5 +26,5 @@ export const updateApproval = Joi.object({
         .label('Số P-Coin thưởng cho người đăng bài'),
     requiredAmount: Joi.number().integer().min(PCOIN.AMOUNTS.MIN_REQUIRED).max(PCOIN.AMOUNTS.MAX_REQUEST_COST)
         .optional()
-        .label('Số P-Coin yêu cầu để xin bài')
+        .label('Số P-Coin yêu cầu để nhận sản phẩm')
 }) 

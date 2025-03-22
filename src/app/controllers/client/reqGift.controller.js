@@ -1,7 +1,13 @@
 import * as giftService from '../../services/client/gift.service'
 
 export async function createPost(req, res) {
-    await giftService.create(req.body, req, res)
+    // Lấy số P-Coin yêu cầu từ middleware
+    const pcoinRequired = req.pcoinRequired || 0
+    
+    // Thêm user_req_id vào request body
+    req.body.user_req_id = req.currentUser._id
+    
+    const result = await giftService.create(req.body, pcoinRequired)
     res.status(201).jsonify('Yêu cầu đã được gửi đến chủ bài đăng')
 }
 

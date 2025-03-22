@@ -3,13 +3,14 @@ export const PCOIN = {
     CONFIG: {
         NAME: process.env.PCOIN_NAME || 'P-Coin',
         UNIT: process.env.PCOIN_UNIT || 'P-Coin',
-        SYMBOL: process.env.PCOIN_SYMBOL || 'P',
-        TRANSACTION_EXPIRY_DAYS: parseInt(process.env.PCOIN_TRANSACTION_EXPIRY_DAYS) || 7
+        SYMBOL: process.env.PCOIN_SYMBOL || 'P-Coin', // Đơn vị tính
+        TRANSACTION_EXPIRY_DAYS: parseInt(process.env.PCOIN_TRANSACTION_EXPIRY_DAYS) || 7,
     },
 
     // Giá trị mặc định
     AMOUNTS: {
         DEFAULT_POST_REWARD: parseInt(process.env.PCOIN_DEFAULT_POST_REWARD) || 1,
+        DEFAULT_REQUEST_COST: parseInt(process.env.PCOIN_DEFAULT_REQUEST_COST) || 0,
         MIN_POST_REWARD: parseInt(process.env.PCOIN_MIN_POST_REWARD) || 1,
         MAX_POST_REWARD: parseInt(process.env.PCOIN_MAX_POST_REWARD) || 100,
         MIN_REQUIRED: parseInt(process.env.PCOIN_MIN_REQUIRED_AMOUNT) || 0,
@@ -18,22 +19,22 @@ export const PCOIN = {
 
     // Loại giao dịch
     TRANSACTION_TYPES: {
-        POST_REWARD: 'POST_REWARD',           // Thưởng khi bài đăng được duyệt
-        EXCHANGE_LOCK: 'EXCHANGE_LOCK',       // Khóa P-Coin khi gửi yêu cầu trao đổi
-        EXCHANGE_UNLOCK: 'EXCHANGE_UNLOCK',   // Mở khóa P-Coin khi hủy/từ chối trao đổi
+        POST_REWARD: 'POST_REWARD', // Thưởng khi bài đăng được duyệt
+        EXCHANGE_LOCK: 'EXCHANGE_LOCK', // Khóa P-Coin khi gửi yêu cầu trao đổi
+        EXCHANGE_UNLOCK: 'EXCHANGE_UNLOCK', // Mở khóa P-Coin khi hủy/từ chối trao đổi
         EXCHANGE_COMPLETE: 'EXCHANGE_COMPLETE', // Hoàn tất giao dịch trao đổi
-        GIFT_LOCK: 'GIFT_LOCK',              // Khóa P-Coin khi gửi yêu cầu nhận quà
-        GIFT_UNLOCK: 'GIFT_UNLOCK',          // Mở khóa P-Coin khi hủy/từ chối
-        GIFT_COMPLETE: 'GIFT_COMPLETE'       // Hoàn tất giao dịch tặng quà
+        GIFT_LOCK: 'GIFT_LOCK', // Khóa P-Coin khi gửi yêu cầu nhận quà
+        GIFT_UNLOCK: 'GIFT_UNLOCK', // Mở khóa P-Coin khi hủy/từ chối
+        GIFT_COMPLETE: 'GIFT_COMPLETE', // Hoàn tất giao dịch tặng quà
     },
 
     // Trạng thái giao dịch
     TRANSACTION_STATUS: {
-        PENDING: 'pending',    // Đang chờ xử lý
+        PENDING: 'pending', // Đang chờ xử lý
         COMPLETED: 'completed', // Đã hoàn thành
         CANCELLED: 'cancelled', // Đã hủy
-        EXPIRED: 'expired'     // Hết hạn
-    }
+        EXPIRED: 'expired', // Hết hạn
+    },
 }
 
 // Helper Functions
@@ -44,9 +45,9 @@ export const PCoinHelpers = {
     // Validate số P-Coin cho bài đăng
     validatePostReward: (amount) => {
         const value = parseInt(amount)
-        return !isNaN(value) && 
-               value >= PCOIN.AMOUNTS.MIN_POST_REWARD && 
-               value <= PCOIN.AMOUNTS.MAX_POST_REWARD
+        return (
+            !isNaN(value) && value >= PCOIN.AMOUNTS.MIN_POST_REWARD && value <= PCOIN.AMOUNTS.MAX_POST_REWARD
+        )
     },
 
     // Validate số P-Coin yêu cầu
@@ -59,16 +60,18 @@ export const PCoinHelpers = {
     // Check đủ số dư
     checkSufficientBalance: (userBalance, requiredAmount) => {
         return userBalance >= requiredAmount
-    }
+    },
 }
 
 // Message Templates
 export const PCoinMessages = {
-    INSUFFICIENT_BALANCE: (required, current) => 
+    INSUFFICIENT_BALANCE: (required, current) =>
         `Bạn cần tối thiểu ${PCoinHelpers.format(required)}. Số dư hiện tại: ${PCoinHelpers.format(current)}`,
 
-    INVALID_POST_REWARD: () => 
-        `Số ${PCOIN.CONFIG.UNIT} thưởng phải từ ${PCoinHelpers.format(PCOIN.AMOUNTS.MIN_POST_REWARD)} đến ${PCoinHelpers.format(PCOIN.AMOUNTS.MAX_POST_REWARD)}`,
+    INVALID_POST_REWARD: () =>
+        `Số ${PCOIN.CONFIG.UNIT} thưởng phải từ ${PCoinHelpers.format(
+            PCOIN.AMOUNTS.MIN_POST_REWARD
+        )} đến ${PCoinHelpers.format(PCOIN.AMOUNTS.MAX_POST_REWARD)}`,
 
     INVALID_REQUIRED_AMOUNT: () =>
         `Số ${PCOIN.CONFIG.UNIT} yêu cầu phải từ ${PCoinHelpers.format(PCOIN.AMOUNTS.MIN_REQUIRED)} trở lên`,
@@ -78,8 +81,8 @@ export const PCoinMessages = {
         [PCOIN.TRANSACTION_TYPES.EXCHANGE_LOCK]: 'Khóa P-Coin cho giao dịch trao đổi',
         [PCOIN.TRANSACTION_TYPES.EXCHANGE_UNLOCK]: 'Hoàn trả P-Coin từ giao dịch trao đổi',
         [PCOIN.TRANSACTION_TYPES.EXCHANGE_COMPLETE]: 'Hoàn tất giao dịch trao đổi',
-        [PCOIN.TRANSACTION_TYPES.GIFT_LOCK]: 'Khóa P-Coin cho giao dịch nhận quà',
-        [PCOIN.TRANSACTION_TYPES.GIFT_UNLOCK]: 'Hoàn trả P-Coin từ giao dịch nhận quà',
-        [PCOIN.TRANSACTION_TYPES.GIFT_COMPLETE]: 'Hoàn tất giao dịch nhận quà'
-    }
-} 
+        [PCOIN.TRANSACTION_TYPES.GIFT_LOCK]: 'Khóa P-Coin cho giao dịch nhận sản phẩm',
+        [PCOIN.TRANSACTION_TYPES.GIFT_UNLOCK]: 'Hoàn trả P-Coin từ giao dịch nhận sản phẩm',
+        [PCOIN.TRANSACTION_TYPES.GIFT_COMPLETE]: 'Hoàn tất giao dịch nhận quà',
+    },
+}

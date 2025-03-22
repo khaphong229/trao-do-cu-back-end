@@ -4,9 +4,9 @@ import RequestsReceive from '@/models/client/requests_receive'
 import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
 import { generateTransactionQR } from './qrcode.service'
-import { generateItemCode } from './item-code.service'
+import * as pcoinService from '@/app/services/client/pcoin.service'
 
-export async function create(requestBody) {
+export async function create(requestBody, pcoinRequired = 0) {
     // Lấy các thông tin cần thiết từ requestBody
     const {post_id, user_req_id, contact_phone, contact_social_media, contact_address, reason_receive} =
         requestBody
@@ -59,28 +59,46 @@ export async function create(requestBody) {
         contact_address,
         reason_receive,
         status: 'pending', // Trạng thái ban đầu là pending
+        pcoin_amount_block: pcoinRequired // Lưu số P-Coin yêu cầu
     })
-    await newRequest.save()
-
-    // 5. Tạo mới thông báo (Notification) cho chủ bài đăng
-    //    - Người nhận thông báo: Chủ bài đăng (postIsValid.user_id)
-    //    - Loại thông báo: 'request_receive' (yêu cầu nhận đồ)
-    //    - post_id: Liên kết đến bài post
-    //    - source_id: _id của yêu cầu nhận mới tạo (newRequest._id)
-    const newNotification = new Notification({
-        user_id: postIsValid.user_id, // Chủ bài đăng nhận thông báo
-        type: 'request_receive', // Loại thông báo cho yêu cầu nhận đồ
-        post_id: post_id, // Liên kết với bài post
-        source_id: newRequest._id, // Liên kết đến yêu cầu nhận vừa tạo
-        source_model: 'RequestsReceive',
-        isRead: false, // Mặc định thông báo chưa được đọc
-        created_at: new Date(),
-        updated_at: new Date(),
-    })
-    await newNotification.save()
-
-    // 6. Trả về bản ghi yêu cầu nhận mới tạo
-    return newRequest
+    
+    try {
+        // Lưu yêu cầu trước để có ID cho transaction
+        await newRequest.save()
+        
+        // Nếu có yêu cầu P-Coin, khóa P-Coin của người gửi yêu cầu
+        if (pcoinRequired > 0) {
+            await pcoinService.handleRequestLock(
+                user_req_id,
+                post_id,
+                newRequest._id,
+                'RequestsReceive',
+                pcoinRequired
+            )
+        }
+        
+        // 5. Tạo mới thông báo (Notification) cho chủ bài đăng
+        const newNotification = new Notification({
+            user_id: postIsValid.user_id, // Chủ bài đăng nhận thông báo
+            type: 'request_receive', // Loại thông báo cho yêu cầu nhận đồ
+            post_id: post_id, // Liên kết với bài post
+            source_id: newRequest._id, // Liên kết đến yêu cầu nhận vừa tạo
+            source_model: 'RequestsReceive',
+            isRead: false, // Mặc định thông báo chưa được đọc
+            created_at: new Date(),
+            updated_at: new Date(),
+        })
+        await newNotification.save()
+        
+        // 6. Trả về bản ghi yêu cầu nhận mới tạo
+        return newRequest
+    } catch (error) {
+        // Nếu có lỗi, xóa yêu cầu đã tạo (nếu có)
+        if (newRequest._id) {
+            await RequestsReceive.findByIdAndDelete(newRequest._id)
+        }
+        throw error
+    }
 }
 
 export const filter = async (qs, limit, current, req) => {
@@ -207,11 +225,13 @@ export const updateStatus = async (req) => {
         })
         .populate('user_req_id')
         .lean()
-    // console.log(requestDoc)
 
     if (!requestDoc) {
         abort(404, 'Không tìm thấy yêu cầu nhận quà tặng')
     }
+
+    // Xử lý P-Coin dựa trên trạng thái mới
+    const pcoinAmount = requestDoc.pcoin_amount_block || 0
 
     // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
@@ -247,7 +267,19 @@ export const updateStatus = async (req) => {
             qrCode: qrCodeUrl 
         })
 
-        // 6. Tạo thông báo cho người gửi yêu cầu
+        // 6. Xử lý P-Coin nếu có
+        if (pcoinAmount > 0) {
+            // Hoàn tất giao dịch P-Coin - chuyển từ ví khóa sang chủ bài đăng
+            await pcoinService.handleTransactionComplete(
+                requestDoc.user_req_id._id,
+                requestDoc.post_id._id,
+                requestDoc._id,
+                'RequestsReceive',
+                pcoinAmount
+            )
+        }
+        
+        // 7. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
             user_id: requestDoc.user_req_id._id,
             type: 'approve_receive',
@@ -259,9 +291,22 @@ export const updateStatus = async (req) => {
             updated_at: new Date(),
         })
         await newNotification.save()
-        console.log(requestDoc.contact_phone)
+    } else if (status === 'rejected' || status === 'canceled') {
+        // Nếu từ chối hoặc hủy yêu cầu, hoàn trả P-Coin nếu có
+        if (pcoinAmount > 0) {
+            await pcoinService.handleRequestUnlock(
+                requestDoc.user_req_id._id, // trả lại P-Coin cho thằng này 
+                requestDoc.post_id._id,
+                requestDoc._id,
+                'RequestsReceive',
+                pcoinAmount
+            )
+        }
+        
+        // Cập nhật trạng thái
+        await RequestsReceive.updateOne({_id: _id}, {status: status})
     } else {
-        // Nếu không phải accepted, chỉ cập nhật status
+        // Nếu không phải accepted/rejected/canceled, chỉ cập nhật status
         const updateResult = await RequestsReceive.updateOne({_id: _id}, {status: status})
         if (!updateResult) {
             abort(400, 'Không tìm thấy document')
