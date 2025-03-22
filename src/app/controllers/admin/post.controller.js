@@ -9,7 +9,19 @@ export const readRoot = async (req, res) => {
 
 export const updateApproval = async (req, res) => {
     const { id } = req.params
-    const result = await postService.updatePostApproval(id, req.body)
+    const { isApproved, reason, rewardAmount, requiredAmount } = req.body
+    
+    // Lấy ID của admin từ thông tin người dùng hiện tại
+    const adminId = req.currentUser._id
+    
+    const result = await postService.updatePostApproval(id, { 
+        isApproved, 
+        reason, 
+        rewardAmount: rewardAmount ? parseInt(rewardAmount) : null,
+        requiredAmount: requiredAmount ? parseInt(requiredAmount) : null,
+        adminId // Truyền adminId vào service
+    })
+    
     res.jsonify(result, 'Cập nhật trạng thái duyệt bài viết thành công')
 } 
 

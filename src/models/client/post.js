@@ -105,9 +105,9 @@ const postSchema = new Schema({
                 message: PCoinMessages.INVALID_POST_REWARD()
             }
         },
-        required_amount: {  // Số P-Coin yêu cầu để tham gia
+        required_amount: {  // Số P-Coin yêu cầu để xin bài
             type: Number,
-            default: null,
+            default: PCOIN.AMOUNTS.DEFAULT_REQUEST_COST,
             validate: {
                 validator: PCoinHelpers.validateRequiredAmount,
                 message: PCoinMessages.INVALID_REQUIRED_AMOUNT()

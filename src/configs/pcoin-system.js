@@ -9,10 +9,11 @@ export const PCOIN = {
 
     // Giá trị mặc định
     AMOUNTS: {
-        DEFAULT_POST_REWARD: parseInt(process.env.PCOIN_DEFAULT_POST_REWARD) || 10,
-        MIN_POST_REWARD: parseInt(process.env.PCOIN_MIN_POST_REWARD) || 5,
+        DEFAULT_POST_REWARD: parseInt(process.env.PCOIN_DEFAULT_POST_REWARD) || 1,
+        MIN_POST_REWARD: parseInt(process.env.PCOIN_MIN_POST_REWARD) || 1,
         MAX_POST_REWARD: parseInt(process.env.PCOIN_MAX_POST_REWARD) || 100,
-        MIN_REQUIRED: parseInt(process.env.PCOIN_MIN_REQUIRED_AMOUNT) || 1
+        MIN_REQUIRED: parseInt(process.env.PCOIN_MIN_REQUIRED_AMOUNT) || 0,
+        MAX_REQUEST_COST: parseInt(process.env.PCOIN_MAX_REQUEST_COST) || 100,
     },
 
     // Loại giao dịch

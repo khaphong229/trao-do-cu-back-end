@@ -3,6 +3,9 @@ import { abort } from '@/utils/helpers'
 import Post from '@/models/client/post'
 import { generateItemCode } from '../client/item-code.service'
 import slugify from 'slugify'
+import * as pcoinService from '@/app/services/client/pcoin.service'
+import { PCOIN } from '@/configs/pcoin-system'
+import TransactionHistory from '@/models/client/transaction-history'
 
 export const filter = async (qs, limit, current) => {
     const {filter} = aqp(qs)
@@ -47,15 +50,27 @@ export const filter = async (qs, limit, current) => {
     }
 }
 
-export const updatePostApproval = async (postId, { isApproved, reason }) => {
+export const updatePostApproval = async (postId, { isApproved, reason, rewardAmount, requiredAmount, adminId }) => {
     const post = await Post.findById(postId).populate('category_id')
     if (!post) {
         abort(404, 'Bài viết không tồn tại')
     }
 
+    // Lưu trạng thái duyệt cũ để kiểm tra sau
+    const wasApprovedBefore = post.isApproved
+    
     post.isApproved = isApproved
     post.approvalReason = reason
     post.approvedAt = isApproved ? new Date() : null
+    
+    // Cập nhật cấu hình P-Coin tiền thưởng và tiền yêu cầu nếu có
+    if (rewardAmount !== null) {
+        post.pcoin_config.reward_amount = rewardAmount
+    }
+    
+    if (requiredAmount !== null) {
+        post.pcoin_config.required_amount = requiredAmount
+    }
     
     // Nếu bài đăng được duyệt, tạo mã vật phẩm
     if (isApproved && !post.itemCode) {
@@ -69,7 +84,28 @@ export const updatePostApproval = async (postId, { isApproved, reason }) => {
         post.itemCode = itemCode
     }
     
+    // Lưu bài đăng trước khi thưởng P-Coin
     await post.save()
+    
+    // Chỉ cộng điểm nếu:
+    // 1. Bài đăng được duyệt (isApproved = true)
+    // 2. Bài đăng chưa từng được duyệt trước đó (wasApprovedBefore = false)
+    // 3. Bài đăng có user_id
+    if (isApproved && !wasApprovedBefore && post.user_id) {
+        // Kiểm tra xem đã có giao dịch thưởng P-Coin cho bài đăng này chưa
+        const existingTransaction = await TransactionHistory.findOne({
+            post_id: post._id,
+            type: PCOIN.TRANSACTION_TYPES.POST_REWARD,
+            status: PCOIN.TRANSACTION_STATUS.COMPLETED
+        })
+        
+        // Chỉ thưởng P-Coin nếu chưa có giao dịch thưởng trước đó
+        if (!existingTransaction) {
+            // Sử dụng hàm handlePostReward để cộng P-Coin vào ví chính của user
+            // Truyền adminId để ghi nhận admin đã duyệt bài
+            await pcoinService.handlePostReward(post._id, adminId)
+        }
+    }
 
     return post
 } 

@@ -76,6 +76,13 @@ const transactionHistorySchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
+    post_type: {
+        type: String,
+        enum: ['gift', 'exchange'],
+        required: function() {
+            return this.post_id !== null
+        }
+    },
 }, {
     timestamps: true,
 })
