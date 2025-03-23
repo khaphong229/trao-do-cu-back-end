@@ -395,28 +395,37 @@ export const filterPtit = async (qs, limit, current, req) => {
         .limit(limit)
         .sort(sort)
 
-    // Xử lý thêm thông tin isRequested
-    const processedPosts = await Promise.all(
-        posts.map(async (post) => {
-            try {
-                const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-                const request = await requestModel
-                    .findOne({
-                        post_id: post._id,
-                        user_req_id: req.currentUser._id,
-                    })
-                    .lean()
+    // Xử lý thêm thông tin isRequested nếu người dùng đã đăng nhập
+    let processedPosts = posts
+    if (req.currentUser && req.currentUser._id) {
+        processedPosts = await Promise.all(
+            posts.map(async (post) => {
+                try {
+                    const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+                    const request = await requestModel
+                        .findOne({
+                            post_id: post._id,
+                            user_req_id: req.currentUser._id,
+                        })
+                        .lean()
 
-                return {
-                    ...post.toObject(),
-                    isRequested: !!request,
+                    return {
+                        ...post.toObject(),
+                        isRequested: !!request,
+                    }
+                } catch (error) {
+                    console.log('Error checking isRequested:', error.message)
+                    return post
                 }
-            } catch (error) {
-                console.log('Error checking isRequested:', error.message)
-                return post
-            }
-        })
-    )
+            })
+        )
+    } else {
+        // Nếu người dùng chưa đăng nhập, đặt isRequested = false cho tất cả bài viết
+        processedPosts = posts.map(post => ({
+            ...post.toObject(),
+            isRequested: false
+        }))
+    }
 
     const total = await Post.countDocuments({
         ...filter,
