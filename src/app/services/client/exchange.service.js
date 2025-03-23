@@ -5,8 +5,11 @@ import {abort} from '@/utils/helpers'
 import aqp from 'api-query-params'
 import { generateTransactionQR } from './qrcode.service'
 import { generateItemCode } from './item-code.service'
+import User from '@/models/admin/user'
+import * as pcoinService from '@/app/services/client/pcoin.service'
+import { PCOIN } from '@/configs/pcoin-system'
 
-export async function create(requestBody) {
+export async function create(requestBody, pcoinRequired = 0) {
     const {
         post_id,
         user_req_id,
@@ -65,17 +68,13 @@ export async function create(requestBody) {
         contact_address,
         status: 'pending', // Trạng thái ban đầu là pending
         requestAt: new Date(), // Thời gian gửi yêu cầu
+        pcoin_amount_block: pcoinRequired, // Lưu số P-Coin đã khóa (sửa tên trường)
     })
 
     // Lưu yêu cầu trao đổi
     await newExchangeRequest.save()
 
     // 5. Tạo thông báo mới (Notification)
-    //    - Người nhận thông báo: Chủ bài đăng (postIsValid.user_id)
-    //    - Loại thông báo: 'request_exchange'
-    //    - post_id: ID của bài đăng liên quan
-    //    - source_id: _id của yêu cầu trao đổi vừa tạo
-    //    - isRead: Mặc định là false => Vì user chưa đọc
     const newNotification = new Notification({
         user_id: postIsValid.user_id, // Chủ bài đăng nhận thông báo
         type: 'request_exchange', // Loại thông báo dành cho yêu cầu trao đổi
@@ -89,6 +88,23 @@ export async function create(requestBody) {
 
     // Lưu notification
     await newNotification.save()
+
+    // Nếu có yêu cầu P-Coin, khóa P-Coin của người gửi yêu cầu
+    if (pcoinRequired > 0) {
+        try {
+            await pcoinService.handleRequestLock(
+                user_req_id,
+                post_id,
+                newExchangeRequest._id,
+                'RequestsExchange',
+                pcoinRequired
+            )
+        } catch (error) {
+            // Nếu có lỗi khi khóa P-Coin, xóa yêu cầu đã tạo
+            await RequestsExchange.findByIdAndDelete(newExchangeRequest._id)
+            throw error
+        }
+    }
 
     // 6. Trả về yêu cầu trao đổi mới được tạo
     return newExchangeRequest
@@ -206,20 +222,20 @@ export const filterMe = async (qs, limit, current, req) => {
     }
 }
 
-export const updateStatus = async (req) => {
-    // Lấy _id và status từ body của request
-    const {_id, status} = req.body
-
-    // Kiểm tra các trường bắt buộc
+export async function updateStatus(req) {
+    const { _id, status } = req.body
+    
+    // Kiểm tra _id và status
     if (!_id) {
-        abort(400, 'ID không được để trống')
+        return abort(400, 'ID không được để trống')
     }
+    
     if (!status) {
-        abort(400, 'Status không được để trống')
+        return abort(400, 'Status không được để trống')
     }
-
-    // Tìm document yêu cầu trao đổi theo _id và populate thông tin cần thiết
-    const requestDoc = await RequestsExchange.findOne({_id: _id})
+    
+    // Tìm bản ghi yêu cầu trao đổi trong RequestsExchange theo _id và populate thông tin cần thiết
+    const requestDoc = await RequestsExchange.findOne({ _id: _id })
         .populate({
             path: 'post_id',
             populate: [
@@ -229,18 +245,28 @@ export const updateStatus = async (req) => {
         })
         .populate('user_req_id')
         .lean()
-
-    console.log('requestDoc', requestDoc)
-
+    
     if (!requestDoc) {
         abort(404, 'Không tìm thấy yêu cầu trao đổi')
     }
-
+    
+    // Kiểm tra các trường quan trọng
+    if (!requestDoc.post_id || !requestDoc.post_id._id) {
+        abort(400, 'Bài đăng không tồn tại hoặc đã bị xóa')
+    }
+    
+    if (!requestDoc.user_req_id || !requestDoc.user_req_id._id) {
+        abort(400, 'Người gửi yêu cầu không tồn tại hoặc đã bị xóa')
+    }
+    
+    // Xử lý P-Coin dựa trên trạng thái mới
+    const pcoinAmount = requestDoc.pcoin_amount_block || 0
+    
     // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
         // 1. Cập nhật trạng thái của bài post thành inactive
-        await Post.updateOne({_id: requestDoc.post_id._id}, {status: 'inactive'})
-
+        await Post.updateOne({ _id: requestDoc.post_id._id }, { status: 'inactive' })
+        
         // 2. Lấy mã vật phẩm từ post
         const itemCode = requestDoc.post_id.itemCode
         if (!itemCode) {
@@ -253,10 +279,10 @@ export const updateStatus = async (req) => {
             itemCode: itemCode,
             itemName: requestDoc.post_id.title,
             category: {
-                name: requestDoc.post_id.category_id.name
+                name: requestDoc.post_id.category_id?.name || 'Không xác định'
             },
-            receiver: requestDoc.user_req_id.name,
-            phone_user_req: requestDoc.contact_phone,
+            receiver: requestDoc.user_req_id.name || 'Không xác định',
+            phone_user_req: requestDoc.contact_phone || 'Không xác định',
             transactionType: 'exchange', // Xác định đây là giao dịch trao đổi
             completedAt: new Date().toISOString()
         }
@@ -269,11 +295,23 @@ export const updateStatus = async (req) => {
             status: status,
             qrCode: qrCodeUrl 
         })
-
-        // 6. Tạo thông báo cho người gửi yêu cầu
+        
+        // 6. Xử lý P-Coin nếu có
+        if (pcoinAmount > 0) {
+            // Hoàn tất giao dịch P-Coin - chuyển từ ví khóa của người gửi yêu cầu sang ví chính của chủ bài đăng
+            await pcoinService.handleTransactionComplete(
+                requestDoc.user_req_id._id,
+                requestDoc.post_id._id,
+                requestDoc._id,
+                'RequestsExchange',
+                pcoinAmount
+            )
+        }
+        
+        // 7. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
             // Người nhận thông báo là người gửi yêu cầu (user_req_id)
-            user_id: requestDoc.user_req_id,
+            user_id: requestDoc.user_req_id._id, // Sử dụng _id thay vì đối tượng
             // Loại thông báo cho việc duyệt yêu cầu trao đổi
             type: 'approve_exchange',
             // Liên kết thông báo với bài post liên quan
@@ -287,12 +325,33 @@ export const updateStatus = async (req) => {
             updated_at: new Date(),
         })
         await newNotification.save()
+    } else if (status === 'rejected' || status === 'canceled') {
+        // Nếu từ chối hoặc hủy yêu cầu, hoàn trả P-Coin nếu có
+        if (pcoinAmount > 0) {
+            await pcoinService.handleRequestUnlock(
+                requestDoc.user_req_id._id, // trả lại P-Coin cho người gửi yêu cầu
+                requestDoc.post_id._id,
+                requestDoc._id,
+                'RequestsExchange',
+                pcoinAmount
+            )
+        }
+        
+        // Cập nhật trạng thái
+        await RequestsExchange.updateOne({_id: _id}, {status: status})
     } else {
-        // Nếu không phải accepted, chỉ cập nhật status
+        // Nếu không phải accepted/rejected/canceled, chỉ cập nhật status
         const updateResult = await RequestsExchange.updateOne({_id: _id}, {status: status})
         if (!updateResult) {
             abort(400, 'Không tìm thấy document')
         }
+    }
+    
+    // Trả về thông tin cập nhật
+    return {
+        _id,
+        status,
+        message: `Đã cập nhật trạng thái thành ${status}`
     }
 }
 
@@ -311,7 +370,7 @@ export const remove = async (_id) => {
     return request
 }
 
-export const getAllRequestsByUser = async (userId) => {
+export const getAllDisplayRequestsByUser = async (userId) => {
     if (!userId) {
         abort(400, 'ID người dùng không được để trống')
     }

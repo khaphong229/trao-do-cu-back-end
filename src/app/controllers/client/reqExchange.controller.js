@@ -1,8 +1,14 @@
 import * as exchangeService from '../../services/client/exchange.service'
 
 export async function createPost(req, res) {
-    await exchangeService.create(req.body, req, res)
-    res.status(201).jsonify('Yêu cầu đã được gửi đến chủ bài đăng')
+    // Lấy số P-Coin yêu cầu từ middleware
+    const pcoinRequired = req.pcoinRequired || 0
+    
+    // Thêm user_req_id vào request body
+    req.body.user_req_id = req.currentUser._id
+    
+    const result = await exchangeService.create(req.body, pcoinRequired)
+    res.status(201).jsonify('Yêu cầu trao đổi đã được gửi đến chủ bài đăng')
 }
 
 export const readList = async (req, res) => {
@@ -20,13 +26,25 @@ export const readListMe = async (req, res) => {
 }
 
 export const success = async (req, res) => {
-    await exchangeService.updateStatus(req)
-    res.status(201).jsonify('Phê duyệt thành công')
+    // Phê duyệt yêu cầu trao đổi
+    const result = await exchangeService.updateStatus(req)
+    
+    // Tùy chỉnh thông báo dựa trên trạng thái
+    let message = 'Cập nhật trạng thái thành công'
+    if (req.body.status === 'accepted') {
+        message = 'Đã chấp nhận yêu cầu trao đổi'
+    } else if (req.body.status === 'rejected') {
+        message = 'Đã từ chối yêu cầu trao đổi'
+    } else if (req.body.status === 'canceled') {
+        message = 'Đã hủy yêu cầu trao đổi'
+    }
+    
+    res.status(201).jsonify(message)
 }
 
 export const deleted = async (req, res) => {
     await exchangeService.remove(req.params.id)
-    res.status(201).jsonify('Từ chối người dùng thành công')
+    res.status(201).jsonify('Từ chối yêu cầu trao đổi thành công')
 }
 
 export const countFavorites = async (req, res) => {
@@ -35,8 +53,8 @@ export const countFavorites = async (req, res) => {
 }
 
 export const getAllRequests = async (req, res) => {
-    const userId = req.currentUser._id
-    const result = await exchangeService.getAllRequestsByUser(userId)
+    const userId = req.query.userId
+    const result = await exchangeService.getAllDisplayRequestsByUser(userId)
     res.json(result)
 }
 

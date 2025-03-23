@@ -6,7 +6,7 @@ import * as giftMiddleware from '../../app/middleware/common/client/reqReceiveCh
 import * as ptiterMiddleware from '../../app/middleware/common/client/checkPtiterAccess.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import {Router} from 'express'
-
+import { checkPCoinBalance } from '@/app/middleware/common/pcoin.middleware'
 const giftRouter = Router()
 
 // [POST] : /gifts
@@ -15,8 +15,18 @@ giftRouter.post(
     asyncHandler(requireAuthentication),
     asyncHandler(validate(giftRequest.createReceiveRequestValidate)),
     asyncHandler(ptiterMiddleware.checkPtiterAccess),
+    asyncHandler(checkPCoinBalance), // Thêm middleware kiểm tra P-Coin
     asyncHandler(giftController.createPost)
 )
+
+// // Thêm middleware checkPCoinBalance vào route tạo yêu cầu
+// reqGiftRouter.post(
+//     '/',
+//     asyncHandler(requireAuthentication),
+//     asyncHandler(validate(reqGiftRequest.create)),
+//     asyncHandler(checkPCoinBalance), // Thêm middleware kiểm tra P-Coin
+//     asyncHandler(reqGiftController.createPost)
+// )
 
 // [GET] : /request_gift
 giftRouter.get('/', asyncHandler(requireAuthentication), asyncHandler(giftController.readList))

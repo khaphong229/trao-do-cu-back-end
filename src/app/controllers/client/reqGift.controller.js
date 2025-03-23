@@ -1,7 +1,13 @@
 import * as giftService from '../../services/client/gift.service'
 
 export async function createPost(req, res) {
-    await giftService.create(req.body, req, res)
+    // Lấy số P-Coin yêu cầu từ middleware
+    const pcoinRequired = req.pcoinRequired || 0
+    
+    // Thêm user_req_id vào request body
+    req.body.user_req_id = req.currentUser._id
+    
+    const result = await giftService.create(req.body, pcoinRequired)
     res.status(201).jsonify('Yêu cầu đã được gửi đến chủ bài đăng')
 }
 
@@ -21,8 +27,19 @@ export const readListMe = async (req, res) => {
 
 export const success = async (req, res) => {
     // Trước khi phê duyệt nên xóa các yêu cầu đã phê duyệt trước đó
-    await giftService.updateStatus(req)
-    res.status(201).jsonify('Phê duyệt thành công')
+    const result = await giftService.updateStatus(req)
+    
+    // Tùy chỉnh thông báo dựa trên trạng thái
+    let message = 'Cập nhật trạng thái thành công'
+    if (req.body.status === 'accepted') {
+        message = 'Đã chấp nhận yêu cầu nhận quà tặng'
+    } else if (req.body.status === 'rejected') {
+        message = 'Đã từ chối yêu cầu nhận quà tặng'
+    } else if (req.body.status === 'canceled') {
+        message = 'Đã hủy yêu cầu nhận quà tặng'
+    }
+    
+    res.status(201).jsonify(message)
 }
 
 export const deleted = async (req, res) => {

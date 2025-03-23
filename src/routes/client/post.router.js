@@ -30,9 +30,24 @@ postRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(postCont
 // // [GET] : /posts/id
 // postRouter.get('/:id', asyncHandler(postMiddleware.checkId), asyncHandler(postController.detailPost))
 
-// [GET] : /posts/id
+// [GET] : /posts/:slug
 postRouter.get('/:slug', asyncHandler(requireAuthentication), asyncHandler(postMiddleware.checkSlug), asyncHandler(postController.getPostBySlug))
 
+// [GET] : /posts/ptit
+postRouter.get('/ptit', 
+    asyncHandler(async (req, res, next) => {
+        try {
+            // Thử xác thực người dùng nhưng không bắt buộc
+            await requireAuthentication(req, res, next)
+            console.log('Authentication optional for /posts/ptit:', req.currentUser)
+        } catch (error) {
+            // Nếu không có token hoặc token invalid, vẫn cho phép request đi tiếp
+            console.log('Authentication optional for /posts/ptit:', error.message)
+            next()
+        }
+    }),
+    asyncHandler(postController.readListPtit)
+)
 
 // [POST] : /posts
 postRouter.post(

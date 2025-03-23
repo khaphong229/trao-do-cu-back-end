@@ -40,6 +40,10 @@ const RequestsReceive = createModel(
             type: String,
             default: null,
         },
+        pcoin_amount_block: {
+            type: Number,
+            default: 0
+        },
         deletedAt: Date,
         isDeleted: {
             type: Boolean,

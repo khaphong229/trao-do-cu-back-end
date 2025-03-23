@@ -1,6 +1,7 @@
 import Joi from 'joi'
 import { tryValidateOrDefault } from '@/utils/helpers'
 import { MAX_STRING_SIZE_TEXT } from '@/configs'
+import { PCOIN } from '@/configs/pcoin-system'
 
 export const readRoot = Joi.object({
     // Hiện đang không dùng
@@ -19,5 +20,11 @@ export const updateApproval = Joi.object({
         is: false,
         then: Joi.string().required().min(0).max(MAX_STRING_SIZE_TEXT).label('Lý do từ chối'),
         otherwise: Joi.string().allow('').optional()
-    })
+    }),
+    rewardAmount: Joi.number().integer().min(PCOIN.AMOUNTS.MIN_POST_REWARD).max(PCOIN.AMOUNTS.MAX_POST_REWARD)
+        .optional()
+        .label('Số P-Coin thưởng cho người đăng bài'),
+    requiredAmount: Joi.number().integer().min(PCOIN.AMOUNTS.MIN_REQUIRED).max(PCOIN.AMOUNTS.MAX_REQUEST_COST)
+        .optional()
+        .label('Số P-Coin yêu cầu để nhận sản phẩm')
 }) 

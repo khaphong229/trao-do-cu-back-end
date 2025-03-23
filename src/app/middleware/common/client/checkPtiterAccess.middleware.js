@@ -10,7 +10,7 @@ export const checkPtiterAccess = async (req, res, next) => {
 
     // Nếu bài viết là PTIT Only và user không phải PTITer
     if (post.isPtiterOnly && !req.currentUser.isPtiter) {
-        return abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT')
+        return abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần cài đặt.')
     }
 
     next()

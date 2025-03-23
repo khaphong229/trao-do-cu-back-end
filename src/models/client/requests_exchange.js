@@ -45,6 +45,10 @@ const RequestsExchange = createModel('RequestsExchange', 'requests_exchange', {
         type: Boolean,
         default: false,
     },
+    pcoin_amount_block: {
+        type: Number,
+        default: 0
+    },
 })
 
 export default RequestsExchange
