@@ -27,8 +27,19 @@ export const readListMe = async (req, res) => {
 
 export const success = async (req, res) => {
     // Phê duyệt yêu cầu trao đổi
-    await exchangeService.updateStatus(req)
-    res.status(201).jsonify('Phê duyệt yêu cầu trao đổi thành công')
+    const result = await exchangeService.updateStatus(req)
+    
+    // Tùy chỉnh thông báo dựa trên trạng thái
+    let message = 'Cập nhật trạng thái thành công'
+    if (req.body.status === 'accepted') {
+        message = 'Đã chấp nhận yêu cầu trao đổi'
+    } else if (req.body.status === 'rejected') {
+        message = 'Đã từ chối yêu cầu trao đổi'
+    } else if (req.body.status === 'canceled') {
+        message = 'Đã hủy yêu cầu trao đổi'
+    }
+    
+    res.status(201).jsonify(message)
 }
 
 export const deleted = async (req, res) => {

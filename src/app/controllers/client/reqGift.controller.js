@@ -27,8 +27,19 @@ export const readListMe = async (req, res) => {
 
 export const success = async (req, res) => {
     // Trước khi phê duyệt nên xóa các yêu cầu đã phê duyệt trước đó
-    await giftService.updateStatus(req)
-    res.status(201).jsonify('Phê duyệt thành công')
+    const result = await giftService.updateStatus(req)
+    
+    // Tùy chỉnh thông báo dựa trên trạng thái
+    let message = 'Cập nhật trạng thái thành công'
+    if (req.body.status === 'accepted') {
+        message = 'Đã chấp nhận yêu cầu nhận quà tặng'
+    } else if (req.body.status === 'rejected') {
+        message = 'Đã từ chối yêu cầu nhận quà tặng'
+    } else if (req.body.status === 'canceled') {
+        message = 'Đã hủy yêu cầu nhận quà tặng'
+    }
+    
+    res.status(201).jsonify(message)
 }
 
 export const deleted = async (req, res) => {

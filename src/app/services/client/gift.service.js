@@ -230,9 +230,18 @@ export const updateStatus = async (req) => {
         abort(404, 'Không tìm thấy yêu cầu nhận quà tặng')
     }
 
+    // Kiểm tra các trường quan trọng
+    if (!requestDoc.post_id || !requestDoc.post_id._id) {
+        abort(400, 'Bài đăng không tồn tại hoặc đã bị xóa')
+    }
+    
+    if (!requestDoc.user_req_id || !requestDoc.user_req_id._id) {
+        abort(400, 'Người gửi yêu cầu không tồn tại hoặc đã bị xóa')
+    }
+
     // Xử lý P-Coin dựa trên trạng thái mới
     const pcoinAmount = requestDoc.pcoin_amount_block || 0
-
+    
     // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
         // 1. Cập nhật trạng thái của bài post thành inactive
@@ -250,11 +259,11 @@ export const updateStatus = async (req) => {
             itemCode: itemCode,
             itemName: requestDoc.post_id.title,
             category: {
-                name: requestDoc.post_id.category_id.name
+                name: requestDoc.post_id.category_id?.name || 'Không xác định'
             },
-            receiver: requestDoc.user_req_id.name,
-            phone_user_req: requestDoc.contact_phone,
-            transactionType: 'gift', // Xác định đây là giao dịch trao tặng
+            receiver: requestDoc.user_req_id.name || 'Không xác định',
+            phone_user_req: requestDoc.contact_phone || 'Không xác định',
+            transactionType: 'gift',
             completedAt: new Date().toISOString()
         }
         
@@ -281,7 +290,7 @@ export const updateStatus = async (req) => {
         
         // 7. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
-            user_id: requestDoc.user_req_id._id,
+            user_id: requestDoc.user_req_id._id, // Sử dụng _id thay vì đối tượng
             type: 'approve_receive',
             source_model: 'RequestsReceive',
             post_id: requestDoc.post_id._id,
@@ -295,7 +304,7 @@ export const updateStatus = async (req) => {
         // Nếu từ chối hoặc hủy yêu cầu, hoàn trả P-Coin nếu có
         if (pcoinAmount > 0) {
             await pcoinService.handleRequestUnlock(
-                requestDoc.user_req_id._id, // trả lại P-Coin cho thằng này 
+                requestDoc.user_req_id._id, // trả lại P-Coin cho người gửi yêu cầu
                 requestDoc.post_id._id,
                 requestDoc._id,
                 'RequestsReceive',
@@ -311,6 +320,13 @@ export const updateStatus = async (req) => {
         if (!updateResult) {
             abort(400, 'Không tìm thấy document')
         }
+    }
+    
+    // Trả về thông tin cập nhật
+    return {
+        _id,
+        status,
+        message: `Đã cập nhật trạng thái thành ${status}`
     }
 }
 

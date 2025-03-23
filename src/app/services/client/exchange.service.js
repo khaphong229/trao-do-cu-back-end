@@ -231,11 +231,11 @@ export async function updateStatus(req) {
     }
     
     if (!status) {
-        return abort(400, 'Trạng thái không được để trống')
+        return abort(400, 'Status không được để trống')
     }
     
-    // Lấy thông tin chi tiết về yêu cầu trao đổi
-    const requestDoc = await RequestsExchange.findById(_id)
+    // Tìm bản ghi yêu cầu trao đổi trong RequestsExchange theo _id và populate thông tin cần thiết
+    const requestDoc = await RequestsExchange.findOne({ _id: _id })
         .populate({
             path: 'post_id',
             populate: [
@@ -250,24 +250,22 @@ export async function updateStatus(req) {
         abort(404, 'Không tìm thấy yêu cầu trao đổi')
     }
     
+    // Kiểm tra các trường quan trọng
+    if (!requestDoc.post_id || !requestDoc.post_id._id) {
+        abort(400, 'Bài đăng không tồn tại hoặc đã bị xóa')
+    }
+    
+    if (!requestDoc.user_req_id || !requestDoc.user_req_id._id) {
+        abort(400, 'Người gửi yêu cầu không tồn tại hoặc đã bị xóa')
+    }
+    
     // Xử lý P-Coin dựa trên trạng thái mới
     const pcoinAmount = requestDoc.pcoin_amount_block || 0
     
     // Nếu trạng thái được cập nhật thành "accepted"
     if (status === 'accepted') {
-        // Nếu có P-Coin bị khóa, chuyển từ ví khóa sang ví chính của chủ bài đăng
-        if (pcoinAmount > 0) {
-            await pcoinService.handleTransactionComplete(
-                requestDoc.user_req_id._id, // trừ ví khóa của người gửi yêu cầu
-                requestDoc.post_id._id,
-                requestDoc._id,
-                'RequestsExchange',
-                pcoinAmount
-            )
-        }
-        
         // 1. Cập nhật trạng thái của bài post thành inactive
-        await Post.updateOne({_id: requestDoc.post_id._id}, {status: 'inactive'})
+        await Post.updateOne({ _id: requestDoc.post_id._id }, { status: 'inactive' })
         
         // 2. Lấy mã vật phẩm từ post
         const itemCode = requestDoc.post_id.itemCode
@@ -281,10 +279,10 @@ export async function updateStatus(req) {
             itemCode: itemCode,
             itemName: requestDoc.post_id.title,
             category: {
-                name: requestDoc.post_id.category_id.name
+                name: requestDoc.post_id.category_id?.name || 'Không xác định'
             },
-            receiver: requestDoc.user_req_id.name,
-            phone_user_req: requestDoc.contact_phone,
+            receiver: requestDoc.user_req_id.name || 'Không xác định',
+            phone_user_req: requestDoc.contact_phone || 'Không xác định',
             transactionType: 'exchange', // Xác định đây là giao dịch trao đổi
             completedAt: new Date().toISOString()
         }
@@ -298,10 +296,22 @@ export async function updateStatus(req) {
             qrCode: qrCodeUrl 
         })
         
-        // 6. Tạo thông báo cho người gửi yêu cầu
+        // 6. Xử lý P-Coin nếu có
+        if (pcoinAmount > 0) {
+            // Hoàn tất giao dịch P-Coin - chuyển từ ví khóa của người gửi yêu cầu sang ví chính của chủ bài đăng
+            await pcoinService.handleTransactionComplete(
+                requestDoc.user_req_id._id,
+                requestDoc.post_id._id,
+                requestDoc._id,
+                'RequestsExchange',
+                pcoinAmount
+            )
+        }
+        
+        // 7. Tạo thông báo cho người gửi yêu cầu
         const newNotification = new Notification({
             // Người nhận thông báo là người gửi yêu cầu (user_req_id)
-            user_id: requestDoc.user_req_id,
+            user_id: requestDoc.user_req_id._id, // Sử dụng _id thay vì đối tượng
             // Loại thông báo cho việc duyệt yêu cầu trao đổi
             type: 'approve_exchange',
             // Liên kết thông báo với bài post liên quan
@@ -335,6 +345,13 @@ export async function updateStatus(req) {
         if (!updateResult) {
             abort(400, 'Không tìm thấy document')
         }
+    }
+    
+    // Trả về thông tin cập nhật
+    return {
+        _id,
+        status,
+        message: `Đã cập nhật trạng thái thành ${status}`
     }
 }
 
