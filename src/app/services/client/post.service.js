@@ -349,11 +349,6 @@ export const details = async (id, req) => {
 }
 
 export const filterPtit = async (qs, limit, current, req) => {
-    // // Kiểm tra user có phải là PTITer không
-    // if (!req.currentUser.isPtiter) {
-    //     abort(403, 'Bạn không phải sinh viên PTIT nên không thể xem những sản phẩm danh cho sinh viên PTIT')
-    // }
-
     let {filter} = aqp(qs)
     const {statusPotsId} = filter
     delete filter.statusPotsId
@@ -378,8 +373,7 @@ export const filterPtit = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    // console.log('filterPtit query:', {filter, current, limit, sort})
-
+    
     const posts = await Post.find({
         ...filter,
     })
@@ -394,43 +388,64 @@ export const filterPtit = async (qs, limit, current, req) => {
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
+        .lean() // Thêm lean() để tối ưu hiệu suất
 
-    // Xử lý thêm thông tin isRequested nếu người dùng đã đăng nhập
-    let processedPosts = posts
-    if (req.currentUser && req.currentUser._id) {
-        processedPosts = await Promise.all(
+    // Xử lý thêm thông tin isRequested
+    const processedPosts = req.headers.authorization
+        ? await Promise.all(
             posts.map(async (post) => {
-                try {
-                    const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-                    const request = await requestModel
-                        .findOne({
-                            post_id: post._id,
-                            user_req_id: req.currentUser._id,
-                        })
-                        .lean()
-
-                    return {
-                        ...post.toObject(),
-                        isRequested: !!request,
+                const token = getToken(req.headers)
+                if (token) {
+                    try {
+                        const allowedToken = _.isUndefined(await tokenBlocklist.get(token))
+                        if (allowedToken) {
+                            const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
+                            
+                            // Log để debug
+                            console.log('Token user_id:', user_id)
+                            
+                            const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
+                            const request = await requestModel
+                                .findOne({
+                                    post_id: post._id,
+                                    user_req_id: user_id,
+                                })
+                                .lean()
+                            
+                            // Log để debug
+                            console.log(`Post ${post._id}, request found:`, !!request)
+                            
+                            return {
+                                ...post,
+                                isRequested: !!request,
+                            }
+                        }
+                    } catch (error) {
+                        console.log('Token error:', error.message)
                     }
-                } catch (error) {
-                    console.log('Error checking isRequested:', error.message)
-                    return post
+                }
+                return {
+                    ...post,
+                    isRequested: false
                 }
             })
         )
-    } else {
-        // Nếu người dùng chưa đăng nhập, đặt isRequested = false cho tất cả bài viết
-        processedPosts = posts.map(post => ({
-            ...post.toObject(),
+        : posts.map(post => ({
+            ...post,
             isRequested: false
         }))
-    }
 
     const total = await Post.countDocuments({
         ...filter,
     })
-    console.log('filterPtit result:', {total, dataLength: posts.length})
+    
+    // Log kết quả để debug
+    console.log('filterPtit result:', {
+        total, 
+        dataLength: posts.length,
+        processedPostsLength: processedPosts.length,
+        hasRequestedPosts: processedPosts.some(p => p.isRequested)
+    })
 
     return {
         total,

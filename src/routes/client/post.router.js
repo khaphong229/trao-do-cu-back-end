@@ -37,11 +37,12 @@ postRouter.get('/:slug', asyncHandler(requireAuthentication), asyncHandler(postM
 postRouter.get('/ptit', 
     asyncHandler(async (req, res, next) => {
         try {
-            // Thử xác thực người dùng
+            // Thử xác thực người dùng nhưng không bắt buộc
             await requireAuthentication(req, res, next)
+            console.log('Authentication optional for /posts/ptit:', req.currentUser)
         } catch (error) {
             // Nếu không có token hoặc token invalid, vẫn cho phép request đi tiếp
-            // nhưng req.currentUser sẽ là undefined
+            console.log('Authentication optional for /posts/ptit:', error.message)
             next()
         }
     }),
