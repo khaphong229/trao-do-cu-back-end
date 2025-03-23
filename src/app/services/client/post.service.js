@@ -349,10 +349,10 @@ export const details = async (id, req) => {
 }
 
 export const filterPtit = async (qs, limit, current, req) => {
-    // Kiểm tra user có phải là PTITer không
-    if (!req.currentUser.isPtiter) {
-        abort(403, 'Bạn không phải sinh viên PTIT nên không thể xem những sản phẩm danh cho sinh viên PTIT')
-    }
+    // // Kiểm tra user có phải là PTITer không
+    // if (!req.currentUser.isPtiter) {
+    //     abort(403, 'Bạn không phải sinh viên PTIT nên không thể xem những sản phẩm danh cho sinh viên PTIT')
+    // }
 
     let {filter} = aqp(qs)
     const {statusPotsId} = filter
@@ -450,7 +450,7 @@ export const getPostDetail = async (postId, userId) => {
     if (post.isPtiterOnly) {
         const user = await User.findById(userId)
         if (!user.isPtiter) {
-            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT')
+            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần cài đặt.')
         }
     }
 
