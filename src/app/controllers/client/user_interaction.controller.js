@@ -11,7 +11,7 @@ export async function saveBatchInteractions(req, res) {
     
     res.jsonify({
         message: 'Lưu tương tác thành công',
-        data: result
+        // data: result
     })
 }
 

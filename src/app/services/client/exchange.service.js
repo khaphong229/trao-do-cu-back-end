@@ -147,14 +147,19 @@ export const filter = async (qs, limit, current, req) => {
         post_id: {$in: userPosts.map((post) => post._id)},
         ...filter,
     })
+        // .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
         .populate({
             path: 'post_id',
             match: statusPotsId ? {status: statusPotsId} : {}, // Lọc thêm theo status nếu statusPotsId tồn tại
+            select: '_id title description type status image_url itemCode'
         })
-        .populate('user_req_id')
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
 
     // Lọc các kết quả không có post_id sau khi populate
     const filteredExchangeRequests = exchangeRequests.filter((req) => req.post_id)
@@ -198,16 +203,22 @@ export const filterMe = async (qs, limit, current, req) => {
         user_req_id: userId,
         ...filter,
     })
+        .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
         .populate({
             path: 'post_id',
+            select: '_id title description type status image_url itemCode',
             populate: {
                 path: 'user_id',
+                select: '_id name avatar status isGoogle'
             },
         })
-        .populate('user_req_id')
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
 
     const total = await RequestsExchange.countDocuments({
         user_req_id: userId,
@@ -236,14 +247,19 @@ export async function updateStatus(req) {
     
     // Tìm bản ghi yêu cầu trao đổi trong RequestsExchange theo _id và populate thông tin cần thiết
     const requestDoc = await RequestsExchange.findOne({ _id: _id })
+        .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .populate({
             path: 'post_id',
+            select: '_id title description type status image_url itemCode category_id user_id',
             populate: [
-                { path: 'category_id' },
-                { path: 'user_id' }
+                { path: 'category_id', select: '_id name' },
+                { path: 'user_id', select: '_id name avatar status isGoogle' }
             ]
         })
-        .populate('user_req_id')
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
         .lean()
     
     if (!requestDoc) {
@@ -396,7 +412,7 @@ export const getAllDisplayRequestsByUser = async (userId) => {
             path: 'post_id',
             select: 'title type status'
         })
-        .populate('user_req_id', 'name email')
+        .populate('user_req_id', '_id name avatar status isGoogle')
         .sort({ created_at: -1 })
 
     // 3. Tính toán total mới

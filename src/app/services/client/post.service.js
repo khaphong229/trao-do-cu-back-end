@@ -96,13 +96,22 @@ export const filterCategory = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    console.log('filterCategory query:', {filter, current, limit, sort})
+    // console.log('filterCategory query:', {filter, current, limit, sort})
 
     const data = await Post.find(filter)
-        .populate('user_id')
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+        .populate({
+            path: 'category_id',
+            select: '_id name',
+        })
+        .populate({
+            path: 'user_id',
+            select: '_id name avatar status',
+        })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
+        .lean()
 
     const processedData = req.headers.authorization
         ? await Promise.all(
@@ -197,6 +206,7 @@ export const filter = async (qs, limit, current, req) => {
 
             // Query với ưu tiên nhưng không lọc bỏ bài viết nào
             data = await Post.find(filter)
+                .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
                 .lean()
                 .then((posts) => {
                     // Đánh dấu bài viết thuộc category ưu tiên
@@ -230,13 +240,14 @@ export const filter = async (qs, limit, current, req) => {
 
             // Populate user và category data
             data = await Post.populate(data, [
-                {path: 'user_id', select: '_id name email avatar phone address status'},
+                {path: 'user_id', select: '_id name avatar status'},
                 {path: 'category_id', select: '_id name'},
             ])
         } else {
             // User chưa khảo sát - query đơn giản
             data = await Post.find(filter)
-                .populate('user_id', '_id name email avatar phone address status')
+                .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+                .populate('user_id', '_id name avatar status')
                 .populate('category_id', '_id name')
                 .skip((current - 1) * limit)
                 .limit(limit)
@@ -246,7 +257,8 @@ export const filter = async (qs, limit, current, req) => {
     } else {
         // User chưa đăng nhập - query đơn giản
         data = await Post.find(filter)
-            .populate('user_id', '_id name email avatar phone address status')
+            .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+            .populate('user_id', '_id name avatar status')
             .populate('category_id', '_id name')
             .skip((current - 1) * limit)
             .limit(limit)
@@ -314,7 +326,7 @@ export const filterMe = async (qs, limit, current, req) => {
     console.log({sort, current, limit, q, filter})
 
     const data = await Post.find(filter)
-        .populate('user_id')
+        .populate('user_id', '_id name avatar status')
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
@@ -324,7 +336,7 @@ export const filterMe = async (qs, limit, current, req) => {
 }
 
 export const details = async (id, req) => {
-    const post = await Post.findOne({_id: id}).populate('user_id')
+    const post = await Post.findOne({_id: id}).populate('user_id', '_id name avatar status')
     if (!post) return null
 
     if (!req.headers.authorization) return post
@@ -377,18 +389,19 @@ export const filterPtit = async (qs, limit, current, req) => {
     const posts = await Post.find({
         ...filter,
     })
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
         .populate({
             path: 'category_id',
-            select: 'name',
+            select: '_id name',
         })
         .populate({
             path: 'user_id',
-            select: 'name email avatar',
+            select: '_id name avatar status',
         })
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .lean() // Thêm lean() để tối ưu hiệu suất
+        .lean()
 
     // Xử lý thêm thông tin isRequested
     const processedPosts = req.headers.authorization
@@ -457,14 +470,16 @@ export const filterPtit = async (qs, limit, current, req) => {
 
 export const getPostDetail = async (postId, userId) => {
     const post = await Post.findById(postId)
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt ')
         .populate({
             path: 'category_id',
-            select: 'name',
+            select: '_id name',
         })
         .populate({
             path: 'user_id',
-            select: 'name email',
+            select: '_id name avatar status',
         })
+        .lean()
 
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
@@ -474,7 +489,7 @@ export const getPostDetail = async (postId, userId) => {
     if (post.isPtiterOnly) {
         const user = await User.findById(userId)
         if (!user.isPtiter) {
-            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần cài đặt.')
+            abort(403, 'Sản phẩm này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần tài khoản.')
         }
     }
 
@@ -497,15 +512,17 @@ export const getPostDetail = async (postId, userId) => {
 // }
 
 export const getPostBySlug = async (slug, userId) => {
-    const post = await Post.findOne({ slug })
+    const post = await Post.findOne({ slug, isDeleted: false })
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt ')
         .populate({
             path: 'category_id',
-            select: 'name',
+            select: '_id name',
         })
         .populate({
             path: 'user_id',
-            select: 'name email avatar',
+            select: '_id name avatar status',
         })
+        .lean()
 
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
@@ -531,7 +548,7 @@ export const getPostBySlug = async (slug, userId) => {
 
         // Thêm trường isRequested vào kết quả
         return {
-            ...post.toObject(),
+            ...post,
             isRequested: !!request,
         }
     }

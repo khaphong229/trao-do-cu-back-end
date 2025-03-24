@@ -36,20 +36,23 @@ export const filter = async (qs, limit, current, req) => {
     const data = await Notification.find(filter)
         .populate({
             path: 'post_id',
-            select: 'title specificLocation city image_url description',
+            select: 'title city image_url description type status itemCode',
             populate: {
                 path: 'user_id',
-                // select: 'name email avatar',
+                select: '_id name avatar status isGoogle',
             },
         })
-        .populate('user_id')
+        .populate({
+            path: 'user_id',
+            select: '_id name avatar status isGoogle',
+        })
         .populate({
             path: 'source_id',
-            select: 'user_req_id',
+            select: 'user_req_id reason_receive contact_social_media',
             populate: [
                 {
                     path: 'user_req_id',
-                    // select: 'name email avatar',
+                    select: '_id name avatar status isGoogle',
                 },
             ],
         })

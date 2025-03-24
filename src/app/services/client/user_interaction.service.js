@@ -36,14 +36,11 @@ export async function saveBatchInteractions(userId, interactions) {
     }
 
     await userInteraction.save()
-    return userInteraction
+    return { success: true, message: 'Đã lưu tương tác thành công' } // Trả về thông báo đơn giản thay vì toàn bộ document
 }
 
 export async function getTopCategoriesForUser(userId, days = 2) {
     const startDate = startOfDay(subDays(new Date(), days - 1))
-    
-    // Log để kiểm tra
-    console.log('Getting interactions from:', startDate)
     
     const topCategories = await UserInteraction.aggregate([
         {

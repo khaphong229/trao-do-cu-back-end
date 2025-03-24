@@ -138,14 +138,19 @@ export const filter = async (qs, limit, current, req) => {
         post_id: {$in: userPosts.map((post) => post._id)},
         ...filter, // Các điều kiện khác từ filter
     })
+        // .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
         .populate({
             path: 'post_id',
             match: statusPotsId ? {status: statusPotsId} : {}, // Lọc thêm theo status nếu statusPotsId tồn tại
+            select: '_id title description type status image_url itemCode'
         })
-        .populate('user_req_id')
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
 
     // Lọc các kết quả không có post_id sau khi populate
     const filteredReceiveRequests = receiveRequests.filter((req) => req.post_id)
@@ -184,11 +189,22 @@ export const filterMe = async (qs, limit, current, req) => {
         user_req_id: userId,
         ...filter,
     })
+        .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
-        .populate({path: 'post_id', populate: {path: 'user_id'}})
-        .populate('user_req_id')
+        .populate({
+            path: 'post_id',
+            select: '_id title description type status image_url itemCode',
+            populate: {
+                path: 'user_id',
+                select: '_id name avatar status isGoogle'
+            }
+        })
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
 
     const total = await RequestsReceive.countDocuments({
         user_req_id: userId,
@@ -216,14 +232,19 @@ export const updateStatus = async (req) => {
 
     // Tìm bản ghi yêu cầu nhận đồ trong RequestsReceive theo _id và populate thông tin cần thiết
     const requestDoc = await RequestsReceive.findOne({_id: _id})
+        .select('-contact_phone -contact_address') // Loại bỏ các trường nhạy cảm
         .populate({
             path: 'post_id',
+            select: '_id title description type status image_url itemCode category_id user_id',
             populate: [
-                { path: 'category_id' },
-                { path: 'user_id' }
+                { path: 'category_id', select: '_id name' },
+                { path: 'user_id', select: '_id name avatar status isGoogle' }
             ]
         })
-        .populate('user_req_id')
+        .populate({
+            path: 'user_req_id',
+            select: '_id name avatar status isGoogle'
+        })
         .lean()
 
     if (!requestDoc) {
