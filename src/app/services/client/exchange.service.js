@@ -395,7 +395,7 @@ export const getAllDisplayRequestsByUser = async (userId) => {
     const userPosts = await Post.find({
         user_id: userId,
         type: 'exchange',
-    })
+    }).select('_id') // Chỉ lấy ID của bài đăng
 
     if (!userPosts.length) {
         return {
@@ -410,7 +410,7 @@ export const getAllDisplayRequestsByUser = async (userId) => {
     })
         .populate({
             path: 'post_id',
-            select: 'title type status'
+            select: 'title type status' // Chỉ lấy các trường cần thiết
         })
         .populate('user_req_id', '_id name avatar status isGoogle')
         .sort({ created_at: -1 })
@@ -431,7 +431,7 @@ export const getAllDisplayRequestsByUser = async (userId) => {
 }
 
 export const getRequestCountByPost = async (postId) => {
-    const post = await Post.findById(postId)
+    const post = await Post.findById(postId).select('display_request_count actual_request_count') // Chỉ lấy các trường cần thiết
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
     }
@@ -443,7 +443,7 @@ export const getRequestCountByPost = async (postId) => {
 }
 
 export const getRequestersCount = async (postId) => {
-    const post = await Post.findById(postId)
+    const post = await Post.findById(postId).select('actual_request_count') // Chỉ lấy actual_request_count
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
     }

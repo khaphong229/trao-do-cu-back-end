@@ -29,6 +29,7 @@ export const createExchangeRequestValidate = Joi.object({
         .trim()
         .max(MAX_STRING_SIZE_TEXT)
         .optional()
+        .allow('')
         .label('Mô tả sản phẩm trao đổi'),
 
     image_url: Joi.array()

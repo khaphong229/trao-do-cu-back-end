@@ -106,7 +106,7 @@ export const filterCategory = async (qs, limit, current, req) => {
         })
         .populate({
             path: 'user_id',
-            select: '_id name avatar status',
+            select: '_id name avatar status isGoogle',
         })
         .skip((current - 1) * limit)
         .limit(limit)
@@ -240,14 +240,14 @@ export const filter = async (qs, limit, current, req) => {
 
             // Populate user và category data
             data = await Post.populate(data, [
-                {path: 'user_id', select: '_id name avatar status'},
+                {path: 'user_id', select: '_id name avatar status isGoogle'},
                 {path: 'category_id', select: '_id name'},
             ])
         } else {
             // User chưa khảo sát - query đơn giản
             data = await Post.find(filter)
                 .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
-                .populate('user_id', '_id name avatar status')
+                .populate('user_id', '_id name avatar status isGoogle')
                 .populate('category_id', '_id name')
                 .skip((current - 1) * limit)
                 .limit(limit)
@@ -258,7 +258,7 @@ export const filter = async (qs, limit, current, req) => {
         // User chưa đăng nhập - query đơn giản
         data = await Post.find(filter)
             .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
-            .populate('user_id', '_id name avatar status')
+            .populate('user_id', '_id name avatar status isGoogle')
             .populate('category_id', '_id name')
             .skip((current - 1) * limit)
             .limit(limit)
@@ -326,7 +326,7 @@ export const filterMe = async (qs, limit, current, req) => {
     console.log({sort, current, limit, q, filter})
 
     const data = await Post.find(filter)
-        .populate('user_id', '_id name avatar status')
+        .populate('user_id', '_id name avatar status isGoogle')
         .skip((current - 1) * limit)
         .limit(limit)
         .sort(sort)
@@ -336,7 +336,7 @@ export const filterMe = async (qs, limit, current, req) => {
 }
 
 export const details = async (id, req) => {
-    const post = await Post.findOne({_id: id}).populate('user_id', '_id name avatar status')
+    const post = await Post.findOne({_id: id}).populate('user_id', '_id name avatar status isGoogle')
     if (!post) return null
 
     if (!req.headers.authorization) return post
@@ -396,7 +396,7 @@ export const filterPtit = async (qs, limit, current, req) => {
         })
         .populate({
             path: 'user_id',
-            select: '_id name avatar status',
+            select: '_id name avatar status isGoogle',
         })
         .skip((current - 1) * limit)
         .limit(limit)
@@ -452,13 +452,13 @@ export const filterPtit = async (qs, limit, current, req) => {
         ...filter,
     })
     
-    // Log kết quả để debug
-    console.log('filterPtit result:', {
-        total, 
-        dataLength: posts.length,
-        processedPostsLength: processedPosts.length,
-        hasRequestedPosts: processedPosts.some(p => p.isRequested)
-    })
+    // // Log kết quả để debug
+    // console.log('filterPtit result:', {
+    //     total, 
+    //     dataLength: posts.length,
+    //     processedPostsLength: processedPosts.length,
+    //     hasRequestedPosts: processedPosts.some(p => p.isRequested)
+    // })
 
     return {
         total,
@@ -470,14 +470,14 @@ export const filterPtit = async (qs, limit, current, req) => {
 
 export const getPostDetail = async (postId, userId) => {
     const post = await Post.findById(postId)
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt ')
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
         .populate({
             path: 'category_id',
             select: '_id name',
         })
         .populate({
             path: 'user_id',
-            select: '_id name avatar status',
+            select: '_id name avatar status isGoogle',
         })
         .lean()
 
@@ -513,14 +513,14 @@ export const getPostDetail = async (postId, userId) => {
 
 export const getPostBySlug = async (slug, userId) => {
     const post = await Post.findOne({ slug, isDeleted: false })
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt ')
+        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
         .populate({
             path: 'category_id',
             select: '_id name',
         })
         .populate({
             path: 'user_id',
-            select: '_id name avatar status',
+            select: '_id name avatar status isGoogle',
         })
         .lean()
 
@@ -528,14 +528,10 @@ export const getPostBySlug = async (slug, userId) => {
         abort(404, 'Không tìm thấy bài viết')
     }
 
-    // Kiểm tra quyền truy cập nếu là bài viết PTIT
-    if (post.isPtiterOnly) {
-        const user = await User.findById(userId)
-        if (!user?.isPtiter) {
-            abort(403, 'Bài viết này chỉ dành cho sinh viên PTIT')
-        }
-    }
-    // Kiểm tra xem người dùng đã yêu cầu bài đăng này chưa
+    // Bỏ kiểm tra quyền truy cập cho bài viết PTIT
+    // Cho phép tất cả người dùng xem được bài viết PTIT
+
+    // Thêm trường isRequested nếu người dùng đã đăng nhập
     if (userId) {
         // Chọn model phù hợp dựa trên loại bài đăng
         const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
@@ -553,9 +549,15 @@ export const getPostBySlug = async (slug, userId) => {
         }
     }
 
-    return post
+    // Nếu không có userId, mặc định isRequested = false
+    return {
+        ...post,
+        isRequested: false
+    }
 }
 
+
+// api dùng 1 lần để thêm slug cho các bài viết cũ.
 export const generateSlugsForExistingPosts = async () => {
     try {
         // Tìm tất cả bài viết chưa có slug hoặc slug rỗng

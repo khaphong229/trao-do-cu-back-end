@@ -54,8 +54,8 @@ export const getPostDetail = async (req, res) => {
 // Thêm hàm mới để lấy bài viết theo slug
 export const getPostBySlug = async (req, res) => {
     const { slug } = req.params
-    const userId = req.currentUser?._id
-    // console.log(userId)
+    const userId = req.currentUser?._id // Sẽ là undefined nếu không đăng nhập
+    
     const result = await postService.getPostBySlug(slug, userId)
     res.jsonify(result)
 }

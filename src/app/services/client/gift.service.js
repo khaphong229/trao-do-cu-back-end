@@ -367,7 +367,7 @@ export const remove = async (_id) => {
 }
 
 
-// Hàm xử lí lấy ra nhận xét của user
+// Tối ưu hóa hàm getAllDisplayRequestsByUser
 export const getAllDisplayRequestsByUser = async (userId) => {
     if (!userId) {
         abort(400, 'ID người dùng không được để trống')
@@ -377,12 +377,11 @@ export const getAllDisplayRequestsByUser = async (userId) => {
     const userPosts = await Post.find({
         user_id: userId,
         type: 'gift',
-    })
+    }).select('_id') // Chỉ lấy ID của bài đăng
 
     if (!userPosts.length) {
         return {
-            total: 0,
-            
+            total: 0
         }
     }
 
@@ -411,8 +410,9 @@ export const getAllDisplayRequestsByUser = async (userId) => {
     }
 }
 
+// Tối ưu hóa hàm getRequestersCount
 export const getRequestersCount = async (postId) => {
-    const post = await Post.findById(postId)
+    const post = await Post.findById(postId).select('actual_request_count') // Chỉ lấy actual_request_count
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
     }
@@ -426,9 +426,9 @@ export const getRequestersCount = async (postId) => {
     }
 }
 
-// Hàm xử lí lấy ra số lượt yêu cầu của bài viết để hiển thị trên mocup sau khi người dùng đã request
+// Tối ưu hóa hàm getRequestCountByPost
 export const getRequestCountByPost = async (postId) => {
-    const post = await Post.findById(postId)
+    const post = await Post.findById(postId).select('display_request_count actual_request_count') // Chỉ lấy các trường cần thiết
     if (!post) {
         abort(404, 'Không tìm thấy bài viết')
     }

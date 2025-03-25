@@ -216,8 +216,8 @@ export async function getUserTransactions(userId, current = 1, pageSize = 10) {
         .sort({created_at: -1})
         .skip(skip)
         .pageSize(pageSize)
-        .populate('from_user', 'name email avatar phone')
-        .populate('to_user', 'name email avatar phone')
+        .populate('from_user', 'name avatar isGoogle')
+        .populate('to_user', 'name avatar isGoogle')
         .populate('post_id', 'title')
         .lean()
 

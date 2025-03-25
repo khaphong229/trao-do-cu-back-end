@@ -31,7 +31,19 @@ postRouter.get('/me', asyncHandler(requireAuthentication), asyncHandler(postCont
 // postRouter.get('/:id', asyncHandler(postMiddleware.checkId), asyncHandler(postController.detailPost))
 
 // [GET] : /posts/:slug
-postRouter.get('/:slug', asyncHandler(requireAuthentication), asyncHandler(postMiddleware.checkSlug), asyncHandler(postController.getPostBySlug))
+postRouter.get('/:slug', 
+    asyncHandler(async (req, res, next) => {
+        try {
+            // Thử xác thực người dùng nhưng không bắt buộc
+            await requireAuthentication(req, res, next)
+        } catch (error) {
+            // Nếu không có token hoặc token invalid, vẫn cho phép request đi tiếp
+            next()
+        }
+    }),
+    asyncHandler(postMiddleware.checkSlug), 
+    asyncHandler(postController.getPostBySlug)
+)
 
 // [GET] : /posts/ptit
 postRouter.get('/ptit', 
