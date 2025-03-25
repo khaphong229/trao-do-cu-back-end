@@ -218,7 +218,7 @@ export async function getUserTransactions(userId, current = 1, pageSize = 10) {
         .pageSize(pageSize)
         .populate('from_user', 'name avatar isGoogle')
         .populate('to_user', 'name avatar isGoogle')
-        .populate('post_id', 'title')
+        .populate('post_id', 'title ')
         .lean()
 
     const total = await TransactionHistory.countDocuments({

@@ -36,24 +36,28 @@ export const filter = async (qs, limit, current, req) => {
     const data = await Notification.find(filter)
         .populate({
             path: 'post_id',
-            select: 'title city image_url description type status itemCode',
+            select: 'title city image_url description type status itemCode contact_phone specificLocation contact_social_media',
             populate: {
                 path: 'user_id',
-                select: '_id name avatar status isGoogle',
+                select: '_id name avatar status isGoogle phone',
             },
         })
         .populate({
             path: 'user_id',
-            select: '_id name avatar status isGoogle',
+            select: '_id name avatar status isGoogle phone',
         })
         .populate({
             path: 'source_id',
-            select: 'user_req_id reason_receive contact_social_media',
+            select: 'user_req_id reason_receive contact_social_media status',
             populate: [
                 {
                     path: 'user_req_id',
-                    select: '_id name avatar status isGoogle',
+                    select: '_id name avatar status isGoogle phone',
                 },
+                {
+                    path: 'post_id',
+                    select: '_id title description type status image_url itemCode city contact_phone specificLocation contact_social_media'
+                }
             ],
         })
         .skip((current - 1) * limit)
@@ -61,12 +65,32 @@ export const filter = async (qs, limit, current, req) => {
         .sort(sort)
         .lean()
 
-    // Không cần xử lý thêm logic như isRequested trong post, trả về data trực tiếp
-    const processedData = data
+    // Xử lý kết quả để chỉ hiển thị thông tin liên hệ khi status là accepted
+    const processedData = data.map(notification => {
+        // Xử lý post_id nếu có
+        if (notification.post_id) {
+            // Nếu không có status hoặc status không phải là accepted, loại bỏ thông tin liên hệ
+            if (!notification.post_id.status || notification.post_id.status !== 'accepted') {
+                const { contact_phone, specificLocation, contact_social_media, ...restPostData } = notification.post_id
+                notification.post_id = restPostData
+            }
+        }
+        
+        // Xử lý source_id nếu có và có post_id
+        if (notification.source_id && notification.source_id.post_id) {
+            // Nếu không có status hoặc status không phải là accepted, loại bỏ thông tin liên hệ
+            if (!notification.source_id.status || notification.source_id.status !== 'accepted') {
+                const { contact_phone, specificLocation, contact_social_media, ...restPostData } = notification.source_id.post_id
+                notification.source_id.post_id = restPostData
+            }
+        }
+        
+        return notification
+    })
 
     // Lấy tổng số notifications thỏa filter
     const total = await Notification.countDocuments(filter)
-    // console.log('filter', filter)
+    
     return {total, current, limit, data: processedData}
 }
 

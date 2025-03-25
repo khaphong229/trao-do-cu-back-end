@@ -145,12 +145,13 @@ export const filter = async (qs, limit, current, req) => {
         .populate({
             path: 'post_id',
             match: statusPotsId ? {status: statusPotsId} : {}, // Lọc thêm theo status nếu statusPotsId tồn tại
-            select: '_id title description type status image_url itemCode'
+            select: '_id title description type status image_url itemCode city'
         })
         .populate({
             path: 'user_req_id',
-            select: '_id name avatar status isGoogle'
+            select: '_id name avatar status isGoogle phone'
         })
+        .lean()
 
     // Lọc các kết quả không có post_id sau khi populate
     const filteredReceiveRequests = receiveRequests.filter((req) => req.post_id)
@@ -195,16 +196,31 @@ export const filterMe = async (qs, limit, current, req) => {
         .sort(sort)
         .populate({
             path: 'post_id',
-            select: '_id title description type status image_url itemCode',
+            // Nếu status là accepted, lấy thêm thông tin liên hệ
+            select: '_id title description type status image_url itemCode city contact_phone specificLocation contact_social_media',
             populate: {
                 path: 'user_id',
-                select: '_id name avatar status isGoogle'
+                select: '_id name avatar status isGoogle phone'
             }
         })
         .populate({
             path: 'user_req_id',
-            select: '_id name avatar status isGoogle'
+            select: '_id name avatar status isGoogle phone'
         })
+        .lean()
+
+    // Xử lý kết quả để chỉ hiển thị thông tin liên hệ khi status là accepted
+    const processedRequests = requests.map(request => {
+        // Nếu status không phải là accepted, loại bỏ thông tin liên hệ
+        if (request.status !== 'accepted' && request.post_id) {
+            const { contact_phone, specificLocation, contact_social_media, ...restPostData } = request.post_id
+            return {
+                ...request,
+                post_id: restPostData
+            }
+        }
+        return request
+    })
 
     const total = await RequestsReceive.countDocuments({
         user_req_id: userId,
@@ -215,7 +231,7 @@ export const filterMe = async (qs, limit, current, req) => {
         total,
         current,
         limit,
-        requests,
+        requests: processedRequests,
     }
 }
 
@@ -238,12 +254,12 @@ export const updateStatus = async (req) => {
             select: '_id title description type status image_url itemCode category_id user_id',
             populate: [
                 { path: 'category_id', select: '_id name' },
-                { path: 'user_id', select: '_id name avatar status isGoogle' }
+                { path: 'user_id', select: '_id name avatar status isGoogle phone' }
             ]
         })
         .populate({
             path: 'user_req_id',
-            select: '_id name avatar status isGoogle'
+            select: '_id name avatar status isGoogle phone'
         })
         .lean()
 
