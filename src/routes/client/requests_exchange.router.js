@@ -41,7 +41,9 @@ exchangeRouter.delete(
 exchangeRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(exchangeController.countFavorites))
 
 // [GET] : /request_exchange/all-requests => Lấy tất cả yêu cầu của các bài đăng của người dùng
-exchangeRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(exchangeController.getAllRequests))
+exchangeRouter.get('/all-requests', 
+    asyncHandler(exchangeController.getAllRequests)
+)
 
 // [GET] : /request_exchange/requesters-count/:postId => Lấy số lượt yêu cầu hiển thị
 exchangeRouter.get(

@@ -390,23 +390,9 @@ export const getAllDisplayRequestsByUser = async (userId) => {
         post_id: { $in: userPosts.map(post => post._id) },
     })
 
-    // // 3. Lấy requests có phân trang
-    // const requests = await RequestsReceive.find({
-    //     post_id: { $in: userPosts.map(post => post._id) },
-    // })
-    //     .populate({
-    //         path: 'post_id',
-    //         select: 'title type status'
-    //     })
-    //     .populate('user_req_id', 'name email')
-    //     .sort({ created_at: -1 })
-    //     .skip((page - 1) * limit)
-    //     .limit(limit)
-
+    // Chỉ trả về tổng số yêu cầu, không trả về chi tiết các yêu cầu
     return {
-        total,
-        
-      
+        total
     }
 }
 

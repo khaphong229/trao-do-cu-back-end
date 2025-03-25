@@ -49,8 +49,11 @@ giftRouter.delete(
 // giftRouter.get('/countFavorites', asyncHandler(requireAuthentication), asyncHandler(giftController.countFavorites))
 
 
-// [GET] : /request_gift/all-requests => xử lí lấy nhận xét của user
-giftRouter.get('/all-requests', asyncHandler(requireAuthentication), asyncHandler(giftController.getAllRequests))
+// [GET] : /request_gift/all-requests => xử lí lấy tổng số yêu cầu của user
+giftRouter.get('/all-requests', 
+    // Bỏ middleware requireAuthentication
+    asyncHandler(giftController.getAllRequests)
+)
 
 // [GET] : /request_gift/requesters-count/:postId
 giftRouter.get('/requesters-count/:postId', asyncHandler(requireAuthentication), asyncHandler(giftController.getRequestersCount))

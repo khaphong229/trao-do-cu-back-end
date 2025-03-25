@@ -55,6 +55,7 @@ export const deleted = async (req, res) => {
 // xử lí lấy nhận xét của userr
 export const getAllRequests = async (req, res) => {
     const userId = req.query.userId
+    
     const result = await giftService.getAllDisplayRequestsByUser(userId)
     res.json(result)
 }
