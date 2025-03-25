@@ -64,14 +64,6 @@ export async function updateProfile(currentUser, body) {
     await User.updateOne({_id: currentUser._id}, {$set: {...body}})
 }
 
-export async function loginSuccessGG(googleId) {
-    const user = await User.findOne({googleId: googleId})
-    if (!user) {
-        return abort(400, 'Not found user by google')
-    }
-    return user
-}
-
 export const updateDefaultAddress = async (address_id, user_id) => {
     const user = await User.findById(user_id)
     if (!user) {
@@ -91,4 +83,9 @@ export const updateDefaultAddress = async (address_id, user_id) => {
     await User.updateOne({_id: user_id, 'address._id': address_id}, {$set: {'address.$.isDefault': true}})
 
     return await User.findById(user_id).select('-password')
+}
+
+export async function loginSuccessGG(googleId) {
+    const user = await User.findOne({googleId: googleId})
+    return user // Trả về user hoặc null nếu không tìm thấy
 }

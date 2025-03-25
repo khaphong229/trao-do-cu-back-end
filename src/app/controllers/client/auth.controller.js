@@ -2,6 +2,7 @@ import {LINK_RESET_PASSWORD_URL, TOKEN_TYPE} from '@/configs'
 import {abort, generateToken, getToken} from '@/utils/helpers'
 import * as authService from '../../services/client/auth.service'
 import * as userService from '../../services/admin/user.service'
+import { User } from '@/models'
 
 export async function login(req, res) {
     const validLogin = await authService.checkValidLogin(req.body)
@@ -57,13 +58,67 @@ export async function resetPassword(req, res) {
 }
 
 export const loginSuccess = async (req, res) => {
-    const {googleId} = req.body
-    if (!googleId) {
-        abort(400, 'Google ID is required')
+    try {
+        const {googleId, email, name, avatar} = req.body
+        
+        if (!googleId) {
+            return res.status(400).json({
+                success: false,
+                message: 'Google ID là bắt buộc'
+            })
+        }
+        
+        // Kiểm tra xem người dùng đã tồn tại chưa
+        const existingUser = await User.findOne({ googleId: googleId })
+        
+        if (existingUser) {
+            // Nếu người dùng đã tồn tại, trả về token
+            return res.jsonify(authService.authToken(existingUser))
+        } else {
+            // Nếu không tìm thấy người dùng và có email
+            if (email) {
+                // Kiểm tra xem email đã tồn tại chưa
+                const userWithEmail = await User.findOne({ email: email })
+                
+                if (userWithEmail) {
+                    // Nếu email đã tồn tại, cập nhật googleId
+                    userWithEmail.googleId = googleId
+                    userWithEmail.isGoogle = true
+                    await userWithEmail.save()
+                    
+                    return res.jsonify(authService.authToken(userWithEmail))
+                } else {
+                    // Tạo người dùng mới
+                    const newUser = new User({
+                        name: name || 'Google User',
+                        email: email,
+                        googleId: googleId,
+                        avatar: avatar || '',
+                        isGoogle: true,
+                        status: 'active',
+                        // Tạo mật khẩu ngẫu nhiên
+                        password: Math.random().toString(36).slice(-10) + Math.random().toString(36).slice(-10)
+                    })
+                    
+                    await newUser.save()
+                    
+                    return res.jsonify(authService.authToken(newUser))
+                }
+            } else {
+                // Nếu không có email, trả về lỗi
+                return res.status(400).json({
+                    success: false,
+                    message: 'Không tìm thấy tài khoản Google và không có email để tạo tài khoản mới'
+                })
+            }
+        }
+    } catch (error) {
+        console.error('Lỗi đăng nhập Google:', error)
+        return res.status(500).json({
+            success: false,
+            message: 'Đã xảy ra lỗi khi xử lý đăng nhập Google'
+        })
     }
-    const data = await authService.loginSuccessGG(googleId)
-    res.jsonify(authService.authToken(data))
-    // console.log('data', data)
 }
 
 export const updateDefaultAddress = async (req, res) => {

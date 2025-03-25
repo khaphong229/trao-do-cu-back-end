@@ -39,7 +39,7 @@ export const filter = async (qs, limit, current, req) => {
             select: 'title city image_url description type status itemCode contact_phone specificLocation contact_social_media',
             populate: {
                 path: 'user_id',
-                select: '_id name avatar status isGoogle phone',
+                select: '_id name avatar status isGoogle phone social_media',
             },
         })
         .populate({
