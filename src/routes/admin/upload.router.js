@@ -1,16 +1,23 @@
 import {LINK_STATIC_URL} from '@/configs'
-import formDataHandler from '@/handlers/form-data.handler'
 import {Router} from 'express'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import checkDiskSpace from '@/app/middleware/common/disk-space.middleware'
+import diskSpaceMiddleware from '@/app/middleware/common/disk-space.middleware'
 import {asyncHandler} from '@/utils/helpers'
 import requireAuthentication from '@/app/middleware/common/client/require-authentication'
+import sharp from 'sharp'
 const uploadRouter = Router()
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024 // 2MB
 
 // Middleware kiểm tra loại file và kích thước
 const fileFilter = (req, file, cb) => {
+    // Validate file size trước khi upload
+    if (parseInt(req.headers['content-length']) > MAX_FILE_SIZE) {
+        return cb(new Error(`File quá lớn. Kích thước tối đa là ${MAX_FILE_SIZE / (1024 * 1024)}MB.`), false)
+    }
+    
     // Kiểm tra định dạng file
     const allowedMimes = [
         'image/jpeg',
@@ -51,11 +58,11 @@ const storage = multer.diskStorage({
 
 // Cấu hình multer với giới hạn
 const upload = multer({
-    storage: storage, // Sử dụng diskStorage thay vì memoryStorage
+    storage: storage,
     limits: {
-        fileSize: 5 * 1024 * 1024, // Giới hạn 5MB
-        files: 10, // Giới hạn số lượng file
-        parts: 100 // Thêm giới hạn số lượng parts trong form
+        fileSize: MAX_FILE_SIZE,
+        files: 5,
+        parts: 100
     },
     fileFilter: fileFilter
 })
@@ -69,13 +76,13 @@ const handleMulterError = (err, req, res, next) => {
             if (err.code === 'LIMIT_FILE_SIZE') {
                 return res.status(400).json({
                     success: false,
-                    message: 'File quá lớn. Kích thước tối đa là 5MB.'
+                    message: 'File quá lớn. Kích thước tối đa là 2MB.'
                 })
             }
             if (err.code === 'LIMIT_FILE_COUNT') {
                 return res.status(400).json({
                     success: false,
-                    message: 'Quá nhiều file. Số lượng tối đa là 10 file.'
+                    message: 'Quá nhiều file. Số lượng tối đa là 5 file.'
                 })
             }
             if (err.code === 'LIMIT_UNEXPECTED_FILE') {
@@ -108,63 +115,108 @@ const handleMulterError = (err, req, res, next) => {
     next()
 }
 
-// Middleware giới hạn tần suất upload
-const uploadRateLimit = (req, res, next) => {
-    // Lấy IP của người dùng
-    const ip = req.ip || req.connection.remoteAddress
-    
-    // Kiểm tra trong bộ nhớ cache hoặc database
-    // Đây chỉ là ví dụ đơn giản, bạn có thể sử dụng Redis hoặc database để lưu trữ
-    if (!global.uploadRateLimits) {
-        global.uploadRateLimits = {}
-    }
-    
-    if (!global.uploadRateLimits[ip]) {
-        global.uploadRateLimits[ip] = {
-            count: 1,
-            timestamp: Date.now()
-        }
-    } else {
-        // Nếu đã quá 1 giờ, reset bộ đếm
-        if (Date.now() - global.uploadRateLimits[ip].timestamp > 60 * 60 * 1000) {
-            global.uploadRateLimits[ip] = {
-                count: 1,
-                timestamp: Date.now()
-            }
-        } else {
-            // Nếu chưa quá 1 giờ, tăng bộ đếm
-            global.uploadRateLimits[ip].count++
-            
-            // Nếu đã vượt quá giới hạn, từ chối request
-            if (global.uploadRateLimits[ip].count > 10) {
-                return res.status(429).json({
-                    success: false,
-                    message: 'Quá nhiều request upload. Vui lòng thử lại sau.'
-                })
-            }
-        }
-    }
-    
-    next()
-}
-
 // Thêm middleware xác thực vào tất cả các route upload
 uploadRouter.use(asyncHandler(requireAuthentication))
 
-// Middleware để xử lý các file đã upload vào temp
-const processUploadedFiles = (req, res, next) => {
+// Thêm hàm resize ảnh
+const resizeImage = async (filePath, fileSize, mimetype) => {
     try {
-        // Nếu không có files, tiếp tục
+        if (!mimetype.startsWith('image/') || mimetype === 'image/gif') {
+            return true
+        }
+
+        const fileSizeInMB = fileSize / (1024 * 1024)
+        let quality = 100
+        let maxWidth = 1920
+        
+        // Điều chỉnh chất lượng và kích thước dựa trên dung lượng file
+        if (fileSizeInMB > 1.5) {
+            quality = 60 // Giảm mạnh hơn cho file lớn
+            maxWidth = 1280 // Giảm kích thước xuống
+        } else if (fileSizeInMB > 1) {
+            quality = 70
+            maxWidth = 1600
+        } else if (fileSizeInMB > 0.6) {
+            quality = 80
+            maxWidth = 1920
+        }
+
+        let outputFormat
+        switch (mimetype) {
+            case 'image/png':
+                outputFormat = 'jpeg' // Chuyển PNG sang JPEG để giảm dung lượng
+                break
+            case 'image/webp':
+                outputFormat = 'webp'
+                break
+            default:
+                outputFormat = 'jpeg'
+        }
+
+        const image = sharp(filePath)
+        const metadata = await image.metadata()
+
+        // Tính toán kích thước mới giữ nguyên tỷ lệ
+        let width = metadata.width
+        let height = metadata.height
+        if (width > maxWidth) {
+            height = Math.round((height * maxWidth) / width)
+            width = maxWidth
+        }
+
+        // Thực hiện resize và optimize
+        await sharp(filePath)
+            .resize(width, height, {
+                fit: 'inside',
+                withoutEnlargement: true
+            })[outputFormat]({
+                quality,
+                chromaSubsampling: '4:2:0',
+                ...(outputFormat === 'webp' ? {
+                    effort: 6,
+                    lossless: false,
+                    nearLossless: false
+                } : {})
+            })
+            .toFile(filePath + '_resized')
+
+        // Thay thế file gốc
+        fs.unlinkSync(filePath)
+        fs.renameSync(filePath + '_resized', filePath)
+
+        // Log kết quả
+        const newSize = fs.statSync(filePath).size
+        const reduction = ((fileSize - newSize) / fileSize * 100).toFixed(2)
+        console.log(`Đã resize ảnh ${filePath}:
+            - Kích thước cũ: ${(fileSize / 1024 / 1024).toFixed(2)}MB
+            - Kích thước mới: ${(newSize / 1024 / 1024).toFixed(2)}MB
+            - Giảm: ${reduction}%
+            - Quality: ${quality}%
+            - Format: ${outputFormat}
+            - Dimensions: ${width}x${height}`)
+
+        return true
+    } catch (error) {
+        console.error('Error resizing image:', error)
+        return false
+    }
+}
+
+// Middleware để xử lý các file đã upload vào temp
+const processUploadedFiles = async (req, res, next) => {
+    try {
         if (!req.files || req.files.length === 0) {
             return next()
         }
         
-        // Tạo formData nếu chưa có
         req.formData = {}
         
         // Xử lý từng file đã upload
-        req.files.forEach(file => {
+        for (const file of req.files) {
             const fieldname = file.fieldname
+            
+            // Gọi resize với thêm thông tin mimetype
+            await resizeImage(file.path, file.size, file.mimetype)
             
             // Tạo đối tượng FileUpload từ file đã upload
             const fileUpload = {
@@ -207,7 +259,7 @@ const processUploadedFiles = (req, res, next) => {
             } else {
                 req.formData[fieldname] = fileUpload
             }
-        })
+        }
         
         next()
     } catch (error) {
@@ -223,8 +275,7 @@ const processUploadedFiles = (req, res, next) => {
 // Route upload file
 uploadRouter.post(
     '/',
-    checkDiskSpace,
-    uploadRateLimit,
+    diskSpaceMiddleware,
     upload.any(),
     handleMulterError,
     processUploadedFiles,

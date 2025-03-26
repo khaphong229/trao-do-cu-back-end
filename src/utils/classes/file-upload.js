@@ -49,27 +49,46 @@ class FileUpload {
             const uploadDir = path.join(PUBLIC_DIR, FileUpload.UPLOAD_FOLDER, ...paths)
             fs.mkdirSync(uploadDir, {recursive: true}) // Tạo thư mục nếu nó chưa tồn tại
 
-            // Lưu file vào hệ thống
-            fs.writeFileSync(
-                path.join(uploadDir, this.filename),
-                this.buffer
-                // finalFilePath => cuối cùng
-            )
-
-            // Gán đường dẫn của file đã lưu
-            this.filepath = path.posix.join(FileUpload.UPLOAD_FOLDER, ...paths, this.filename)
-            return this.filepath
+            let finalFilePath = null
+            try {
+                // Lưu file vào hệ thống
+                finalFilePath = path.join(uploadDir, this.filename)
+                fs.writeFileSync(finalFilePath, this.buffer)
+                
+                // Gán đường dẫn của file đã lưu
+                this.filepath = path.posix.join(FileUpload.UPLOAD_FOLDER, ...paths, this.filename)
+                return this.filepath
+            } catch (error) {
+                // Nếu có lỗi khi lưu file, xóa file nếu nó đã được tạo
+                if (finalFilePath && fs.existsSync(finalFilePath)) {
+                    try {
+                        fs.unlinkSync(finalFilePath)
+                        console.log(`Đã xóa file lỗi: ${finalFilePath}`)
+                    } catch (unlinkError) {
+                        console.error(`Không thể xóa file lỗi: ${finalFilePath}`, unlinkError)
+                    }
+                }
+                throw error // Ném lại lỗi để xử lý ở cấp cao hơn
+            }
         } else {
             throw new Error('File saved. Use the "filepath" attribute to retrieve the file path.')
         }
     }
 
     static remove(filepath) {
-        filepath = path.join(PUBLIC_DIR, filepath)
-        // chuyển thành tuyệt đối để xóa =)))
-        if (!fs.existsSync(filepath)) return
-        const stats = fs.statSync(filepath)
-        if (stats.isFile()) fs.unlinkSync(filepath)
+        try {
+            filepath = path.join(PUBLIC_DIR, filepath)
+            // chuyển thành tuyệt đối để xóa =)))
+            if (!fs.existsSync(filepath)) return
+            const stats = fs.statSync(filepath)
+            if (stats.isFile()) {
+                fs.unlinkSync(filepath)
+                console.log(`Đã xóa file: ${filepath}`)
+            }
+        } catch (error) {
+            console.error(`Lỗi khi xóa file ${filepath}:`, error)
+            // Không ném lỗi để không làm gián đoạn luồng xử lý
+        }
     }
 }
 
