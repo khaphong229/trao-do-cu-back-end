@@ -14,7 +14,7 @@ export const checkDiskSpace = async (req, res, next) => {
                 const { stdout } = await execAsync('df -h / | tail -1 | awk \'{print $5}\'')
                 const usedPercentage = parseInt(stdout.trim().replace('%', ''))
                 
-                if (usedPercentage > 85) {
+                if (usedPercentage > 90) {
                     return res.status(503).json({
                         success: false,
                         message: 'Server đang gần hết dung lượng lưu trữ. Vui lòng thử lại sau.'
