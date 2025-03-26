@@ -11,6 +11,7 @@ class FileUpload {
         this.originalname = originalname
         this.mimetype = mimetype // image/jpeg hoặc application/pdf.
         this.buffer = buffer
+        this.size = buffer ? buffer.length : 0
 
         // Sử dụng UUID_TRANSLATOR để tạo tên file duy nhất và lấy phần mở rộng từ mimetype
         this.filename = `${UUID_TRANSLATOR.generate()}.${mime.extension(this.mimetype)}`
@@ -31,6 +32,19 @@ class FileUpload {
 
     save(...paths) {
         if (!this.filepath) {
+            // Kiểm tra phần mở rộng của file
+            const ext = path.extname(this.originalname).toLowerCase()
+            
+            // Từ chối file .txt
+            if (ext === '.txt' || this.mimetype === 'text/plain') {
+                throw new Error('Không chấp nhận file .txt')
+            }
+            
+            // Kiểm tra kích thước file
+            if (this.size > 5 * 1024 * 1024) { // 5MB
+                throw new Error('File quá lớn. Kích thước tối đa là 5MB.')
+            }
+            
             // Khai báo đường dẫn lưu file
             const uploadDir = path.join(PUBLIC_DIR, FileUpload.UPLOAD_FOLDER, ...paths)
             fs.mkdirSync(uploadDir, {recursive: true}) // Tạo thư mục nếu nó chưa tồn tại

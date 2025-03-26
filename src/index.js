@@ -39,7 +39,7 @@ function createApp() {
     app.use(helmet())
     app.use(express.json())
     app.use(express.urlencoded({extended: true}))
-    app.use(multer({storage: multer.memoryStorage()}).any())
+    // app.use(multer({storage: multer.memoryStorage()}).any())
     app.use(formDataHandler)
     app.use(initLocalsHandler)
 

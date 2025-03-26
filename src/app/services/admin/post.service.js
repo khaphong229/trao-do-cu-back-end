@@ -15,7 +15,7 @@ export const filter = async (qs, limit, current) => {
     // Xử lý query search
     const {q} = filter
     delete filter.q
-    console.log('filter :' , filter)
+    // console.log('filter :' , filter)
 
     // Thêm điều kiện isDeleted và search vào filter
     filter.isDeleted = false
