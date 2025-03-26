@@ -11,26 +11,32 @@ import UserInterest from '@/models/client/user_interest'
 import {User} from '@/models'
 import mongoose from 'mongoose'
 import slugify from 'slugify'
-import { PCOIN } from '@/configs/pcoin-system'
+import {PCOIN} from '@/configs/pcoin-system'
 
 export async function create(requestBody, req) {
     const user_id = req.currentUser._id
     requestBody.user_id = user_id
-    
+
     // Xử lý cấu hình P-Coin từ các trường riêng lẻ
     const rewardAmount = requestBody.rewardAmount || PCOIN.AMOUNTS.DEFAULT_POST_REWARD
     const requiredAmount = requestBody.requiredAmount || PCOIN.AMOUNTS.DEFAULT_REQUEST_COST
-    
+
     // Tạo đối tượng pcoin_config
     requestBody.pcoin_config = {
-        reward_amount: Math.min(Math.max(rewardAmount, PCOIN.AMOUNTS.MIN_POST_REWARD), PCOIN.AMOUNTS.MAX_POST_REWARD),
-        required_amount: Math.min(Math.max(requiredAmount, PCOIN.AMOUNTS.MIN_REQUIRED), PCOIN.AMOUNTS.MAX_REQUEST_COST)
+        reward_amount: Math.min(
+            Math.max(rewardAmount, PCOIN.AMOUNTS.MIN_POST_REWARD),
+            PCOIN.AMOUNTS.MAX_POST_REWARD
+        ),
+        required_amount: Math.min(
+            Math.max(requiredAmount, PCOIN.AMOUNTS.MIN_REQUIRED),
+            PCOIN.AMOUNTS.MAX_REQUEST_COST
+        ),
     }
-    
+
     // Xóa các trường riêng lẻ để tránh lưu trùng
     delete requestBody.rewardAmount
     delete requestBody.requiredAmount
-    
+
     const data = new Post(requestBody)
     await data.save()
     return data
@@ -99,7 +105,9 @@ export const filterCategory = async (qs, limit, current, req) => {
     // console.log('filterCategory query:', {filter, current, limit, sort})
 
     const data = await Post.find(filter)
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+        .select(
+            '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+        )
         .populate({
             path: 'category_id',
             select: '_id name',
@@ -128,7 +136,7 @@ export const filterCategory = async (qs, limit, current, req) => {
                         })
 
                         return {
-                            ...post.toObject(),
+                            ...post,
                             isRequested: !!request,
                         }
                     }
@@ -206,7 +214,9 @@ export const filter = async (qs, limit, current, req) => {
 
             // Query với ưu tiên nhưng không lọc bỏ bài viết nào
             data = await Post.find(filter)
-                .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+                .select(
+                    '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+                )
                 .lean()
                 .then((posts) => {
                     // Đánh dấu bài viết thuộc category ưu tiên
@@ -246,7 +256,9 @@ export const filter = async (qs, limit, current, req) => {
         } else {
             // User chưa khảo sát - query đơn giản
             data = await Post.find(filter)
-                .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+                .select(
+                    '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+                )
                 .populate('user_id', '_id name avatar status isGoogle')
                 .populate('category_id', '_id name')
                 .skip((current - 1) * limit)
@@ -257,7 +269,9 @@ export const filter = async (qs, limit, current, req) => {
     } else {
         // User chưa đăng nhập - query đơn giản
         data = await Post.find(filter)
-            .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+            .select(
+                '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+            )
             .populate('user_id', '_id name avatar status isGoogle')
             .populate('category_id', '_id name')
             .skip((current - 1) * limit)
@@ -355,7 +369,7 @@ export const details = async (id, req) => {
     })
 
     return {
-        ...post.toObject(),
+        ...post,
         isRequested: !!request,
     }
 }
@@ -385,11 +399,13 @@ export const filterPtit = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 5
     if (!sort) sort = {created_at: -1}
-    
+
     const posts = await Post.find({
         ...filter,
     })
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+        .select(
+            '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+        )
         .populate({
             path: 'category_id',
             select: '_id name',
@@ -413,10 +429,10 @@ export const filterPtit = async (qs, limit, current, req) => {
                         const allowedToken = _.isUndefined(await tokenBlocklist.get(token))
                         if (allowedToken) {
                             const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
-                            
+
                             // Log để debug
                             console.log('Token user_id:', user_id)
-                            
+
                             const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
                             const request = await requestModel
                                 .findOne({
@@ -424,10 +440,10 @@ export const filterPtit = async (qs, limit, current, req) => {
                                     user_req_id: user_id,
                                 })
                                 .lean()
-                            
+
                             // Log để debug
                             console.log(`Post ${post._id}, request found:`, !!request)
-                            
+
                             return {
                                 ...post,
                                 isRequested: !!request,
@@ -439,22 +455,22 @@ export const filterPtit = async (qs, limit, current, req) => {
                 }
                 return {
                     ...post,
-                    isRequested: false
+                    isRequested: false,
                 }
             })
         )
-        : posts.map(post => ({
+        : posts.map((post) => ({
             ...post,
-            isRequested: false
+            isRequested: false,
         }))
 
     const total = await Post.countDocuments({
         ...filter,
     })
-    
+
     // // Log kết quả để debug
     // console.log('filterPtit result:', {
-    //     total, 
+    //     total,
     //     dataLength: posts.length,
     //     processedPostsLength: processedPosts.length,
     //     hasRequestedPosts: processedPosts.some(p => p.isRequested)
@@ -470,7 +486,9 @@ export const filterPtit = async (qs, limit, current, req) => {
 
 export const getPostDetail = async (postId, userId) => {
     const post = await Post.findById(postId)
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+        .select(
+            '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+        )
         .populate({
             path: 'category_id',
             select: '_id name',
@@ -489,7 +507,10 @@ export const getPostDetail = async (postId, userId) => {
     if (post.isPtiterOnly) {
         const user = await User.findById(userId)
         if (!user.isPtiter) {
-            abort(403, 'Sản phẩm này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần tài khoản.')
+            abort(
+                403,
+                'Sản phẩm này chỉ dành cho sinh viên PTIT. Vui lòng xác thực tài khoản trong phần tài khoản.'
+            )
         }
     }
 
@@ -512,8 +533,10 @@ export const getPostDetail = async (postId, userId) => {
 // }
 
 export const getPostBySlug = async (slug, userId) => {
-    const post = await Post.findOne({ slug, isDeleted: false })
-        .select('-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt')
+    const post = await Post.findOne({slug, isDeleted: false})
+        .select(
+            '-contact_phone -specificLocation -contact_social_media -approvalReason -createdAt -updatedAt -deletedAt'
+        )
         .populate({
             path: 'category_id',
             select: '_id name',
@@ -535,7 +558,7 @@ export const getPostBySlug = async (slug, userId) => {
     if (userId) {
         // Chọn model phù hợp dựa trên loại bài đăng
         const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
-        
+
         // Tìm yêu cầu của người dùng hiện tại
         const request = await requestModel.findOne({
             post_id: post._id,
@@ -552,61 +575,57 @@ export const getPostBySlug = async (slug, userId) => {
     // Nếu không có userId, mặc định isRequested = false
     return {
         ...post,
-        isRequested: false
+        isRequested: false,
     }
 }
-
 
 // api dùng 1 lần để thêm slug cho các bài viết cũ.
 export const generateSlugsForExistingPosts = async () => {
     try {
         // Tìm tất cả bài viết chưa có slug hoặc slug rỗng
         const posts = await Post.find({
-            $or: [
-                { slug: { $exists: false } },
-                { slug: null },
-                { slug: '' }
-            ]
+            $or: [{slug: {$exists: false}}, {slug: null}, {slug: ''}],
         })
-        
+
         if (!posts.length) {
-            return { message: 'Không có bài viết nào cần cập nhật slug', count: 0 }
+            return {message: 'Không có bài viết nào cần cập nhật slug', count: 0}
         }
-        
+
         let updatedCount = 0
-        
+
         // Cập nhật slug cho từng bài viết
         for (const post of posts) {
             // Tạo slug từ title
             const baseSlug = slugify(post.title, {
                 lower: true,
                 strict: true,
-                locale: 'vi'
+                locale: 'vi',
             })
-            
+
             let finalSlug = baseSlug
             let counter = 1
-            
+
             // Kiểm tra slug tồn tại
-            while (await Post.findOne({ 
-                slug: finalSlug,
-                _id: { $ne: post._id }
-            })) {
+            while (
+                await Post.findOne({
+                    slug: finalSlug,
+                    _id: {$ne: post._id},
+                })
+            ) {
                 finalSlug = `${baseSlug}-${counter}`
                 counter++
             }
-            
+
             // Cập nhật slug
-            await Post.findByIdAndUpdate(post._id, { slug: finalSlug })
+            await Post.findByIdAndUpdate(post._id, {slug: finalSlug})
             updatedCount++
         }
-        
+
         return {
             message: 'Đã cập nhật slug cho các bài viết thành công',
-            count: updatedCount
+            count: updatedCount,
         }
     } catch (error) {
         abort(500, 'Có lỗi khi cập nhật slug: ' + error.message)
     }
 }
-
