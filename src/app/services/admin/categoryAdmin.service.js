@@ -37,7 +37,7 @@ export async function filter() {
 }
 
 export async function filterPost(body) {
-    console.log(body)
+    // console.log(body)
     // Tách chuỗi thành mảng
     const categoryIdsArray = body.category_id.split(',')
 

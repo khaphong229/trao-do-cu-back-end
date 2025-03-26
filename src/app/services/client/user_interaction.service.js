@@ -80,7 +80,7 @@ export async function getTopCategoriesForUser(userId, days = 2) {
     ])
 
     // Log kết quả
-    console.log('Found top categories:', topCategories.length)
+    // console.log('Found top categories:', topCategories.length)
     
     return topCategories
 } 

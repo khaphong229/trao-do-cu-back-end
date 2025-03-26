@@ -146,7 +146,7 @@ export const filterCategory = async (qs, limit, current, req) => {
         : data
 
     const total = await Post.countDocuments(filter)
-    console.log('filterCategory result:', {total, dataLength: data.length})
+    // console.log('filterCategory result:', {total, dataLength: data.length})
     return {total, current, limit, data: processedData}
 }
 
@@ -176,7 +176,7 @@ export const filter = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 16
     if (!sort) sort = {created_at: -1}
-    console.log('filter query:', {filter, current, limit, sort})
+    // console.log('filter query:', {filter, current, limit, sort})
 
     let data = []
     const userId = req.currentUser?._id
@@ -305,7 +305,7 @@ export const filter = async (qs, limit, current, req) => {
                         }
                     } catch (error) {
                         // Nếu token hết hạn hoặc không hợp lệ, trả về post không có isRequested
-                        console.log('Token error:', error.message)
+                        // console.log('Token error:', error.message)
                     }
                 }
                 return post
@@ -314,7 +314,7 @@ export const filter = async (qs, limit, current, req) => {
         : data
 
     const total = await Post.countDocuments(filter)
-    console.log('filter result:', {total, dataLength: data.length})
+    // console.log('filter result:', {total, dataLength: data.length})
     return {total, current, limit, data: processedData}
 }
 
@@ -337,7 +337,7 @@ export const filterMe = async (qs, limit, current, req) => {
     if (isNaN(current) || current <= 0 || !Number.isInteger(current)) current = 1
     if (isNaN(limit) || limit <= 0 || !Number.isInteger(limit)) limit = 16
     if (!sort) sort = {created_at: -1}
-    console.log({sort, current, limit, q, filter})
+    // console.log({sort, current, limit, q, filter})
 
     const data = await Post.find(filter)
         .populate('user_id', '_id name avatar status isGoogle')
@@ -431,7 +431,7 @@ export const filterPtit = async (qs, limit, current, req) => {
                             const {user_id} = verifyToken(token, TOKEN_TYPE.AUTHORIZATION)
 
                             // Log để debug
-                            console.log('Token user_id:', user_id)
+                            // console.log('Token user_id:', user_id)
 
                             const requestModel = post.type === 'gift' ? RequestsReceive : RequestsExchange
                             const request = await requestModel
@@ -442,7 +442,7 @@ export const filterPtit = async (qs, limit, current, req) => {
                                 .lean()
 
                             // Log để debug
-                            console.log(`Post ${post._id}, request found:`, !!request)
+                            // console.log(`Post ${post._id}, request found:`, !!request)
 
                             return {
                                 ...post,
@@ -450,7 +450,7 @@ export const filterPtit = async (qs, limit, current, req) => {
                             }
                         }
                     } catch (error) {
-                        console.log('Token error:', error.message)
+                        // console.log('Token error:', error.message)
                     }
                 }
                 return {
