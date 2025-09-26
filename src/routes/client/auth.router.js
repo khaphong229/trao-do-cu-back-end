@@ -8,6 +8,8 @@ import {asyncHandler} from '@/utils/helpers'
 import passport from 'passport'
 import { verifyRecaptcha } from '@/app/middleware/common/recaptcha.middleware'
 
+
+
 const authRouter = Router()
 
 authRouter.post('/login', asyncHandler(validate(authRequest.login)), asyncHandler(authController.login))
