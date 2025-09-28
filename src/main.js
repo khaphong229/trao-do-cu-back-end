@@ -14,7 +14,7 @@ const port = parseInt(process.env.PORT, 10) || 3456
 const app = createApp()
 db.connect().then(() => console.log('Database connection successful!'))
 
-Run Server
+
 if (process.env.BUILD_MODE === 'production') {
    const port = process.env.PORT || 3456
     app.listen(port, '0.0.0.0', () => {
